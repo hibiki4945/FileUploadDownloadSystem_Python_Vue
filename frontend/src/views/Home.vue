@@ -114,7 +114,7 @@ export default {
             </thead>
             <tbody>
                 <tr>
-                    <td>ダウンロードリンク</td>
+                    <td>動作</td>
                     <td>ファイル名</td>
                     <td>ファイルサイズ</td>
                     <td>アプロード日付</td>
@@ -122,7 +122,7 @@ export default {
                     <td>ファイルパス</td>
                 </tr>
                 <tr v-for="item in list">
-                    <td><button @click="download(item[6])">リンク</button></td>
+                    <td><button @click="download(item[6])">ダウンロード</button></td>
                     <td>{{ item[0] }}</td>
                     <td><p v-text=this.fileSizeUnit(item[1])></p></td>
                     <td>{{ item[2] }}/{{ item[3] }}/{{ item[4] }}</td>

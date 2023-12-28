@@ -19,14 +19,14 @@ def searchAll():
     cur = con.cursor()
 
     # 全ての資料を検索（ret1で検索結果を記録）
-    ret = cur.execute("SELECT * FROM file")
-    ret1 = []
-    for  item  in  ret.fetchall():
-        ret1.append(item)
+    result = cur.execute("SELECT * FROM file")
+    resultReturn = []
+    for  item  in  result.fetchall():
+        resultReturn.append(item)
     con.close()
 
     # 検索結果を返す
-    return {'code': '200', 'testData': ret1}
+    return {'code': '200', 'testData': resultReturn}
 
 # ファイルをアプロード
 @app.post("/api/upload")
@@ -43,9 +43,9 @@ def upload(file: UploadFile):
     # データベースに必要な資料を用意
     path = Path('./database', fileName)
     fileSize = path.stat().st_size
-    fileUpdateTime = time.localtime(path.stat().st_mtime)
-    fileUpdateTime = time.strftime("%Y-%m-%d",fileUpdateTime)
-    fileUpdateTime = fileUpdateTime.split("-")
+    # fileUpdateTime = time.localtime(path.stat().st_mtime)
+    fileUpdateTimeOrigin = time.strftime("%Y-%m-%d",time.localtime(path.stat().st_mtime))
+    fileUpdateTime = fileUpdateTimeOrigin.split("-")
     fileUpdateYear = fileUpdateTime[0]
     fileUpdateMonth = fileUpdateTime[1]
     fileUpdateDay = fileUpdateTime[2]
