@@ -3,43 +3,7 @@
 // axiosでapiと接続
 import axios from 'axios';
 
-import { ref } from 'vue';
-
-const ClickRowArgument = {
-  isSelected: false,
-  indexInCurrentPage: 0,
-};
-
-const headers = [
-  { text: "PLAYER", value: "player" },
-  { text: "TEAM", value: "team"},
-  { text: "NUMBER", value: "number"},
-  { text: "POSITION", value: "position"},
-  { text: "HEIGHT", value: "indicator.height"},
-  { text: "WEIGHT", value: "indicator.weight", sortable: true},
-  { text: "LAST ATTENDED", value: "lastAttended"},
-  { text: "COUNTRY", value: "country"},
-  { text: "Operation", value: "operation"},
-];
-
-const items = [
-    { "id": 1, "player": "Stephen Curry", "page": "https://www.nba.com/player/201939/stephen-curry", "avator": "https://bafkreih3oswhrhrvxwhebuqqnlqtklnth5pbc2q3iv6446icpltt6tymvy.ipfs.dweb.link/?filename=Stephen.png", "teamName": "GSW", "teamUrl": "https://www.nba.com/team/1610612744/warriors", "number": 30, "position": 'G', indicator: {"height": '6-2', "weight": 185}, "lastAttended": "Davidson", "country": "USA"},
-    { "id": 2, "player": "Lebron James",  "page": "https://www.nba.com/player/2544/lebron-james", "avator": "https://bafkreigphmpdonfxpcb7lwrzv754t2xp2cw3segdpsj44rpurzwnuowhsq.ipfs.dweb.link/?filename=lebron.png", "teamName": "LAL", "teamUrl": "https://www.nba.com/team/1610612747/lakers", "number": 6, "position": 'F', indicator: {"height": '6-9', "weight": 250}, "lastAttended": "St. Vincent-St. Mary HS (OH)", "country": "USA"},
-    { "id": 3, "player": "Kevin Durant", "page": "https://www.nba.com/player/201142/kevin-durant", "avator": "https://bafkreihvjvturzol7kfdafrnpxvilj2rti5bwyee7wbvtxogrx34uzjfz4.ipfs.dweb.link/?filename=Kevin.png", "teamName": "BKN", "teamUrl": "https://www.nba.com/team/1610612751/nets", "number": 7, "position": 'F', indicator: {"height": '6-10', "weight": 240}, "lastAttended": "Texas-Austin", "country": "USA"},
-    { "id": 4, "player": "Giannis Antetokounmpo", "page": "https://www.nba.com/player/203507/giannis-antetokounmpo", "avator": "https://bafkreie26rcr5ppdpqrclr3kpk7p7hqyypjo3o2g43yk35ly4e5dmwxigm.ipfs.dweb.link/?filename=Giannis.png", "teamName": "MIL", "teamUrl": "https://www.nba.com/team/1610612749/bucks", "number": 34, "position": 'F', indicator: {"height": '6-11', "weight": 242}, "lastAttended": "Filathlitikos", "country": "Greece"},
-  ];
-
-export default { 
-    // components:{
-    //     RouterLink,
-    // },
-    // components: { TableLite },
-    setup() {
-        return {
-            headers: ref(headers),
-            items: ref(items),
-        };
-    },
+export default {
     data() {
         return {
             // アプロード用（ファイルを入れる）
@@ -49,9 +13,20 @@ export default {
                 headers:{'Content-Type':'multipart/form-data'}
             },
             // データベースの検索結果
-            list: null,
+            // list: null,
             // ダウンロードしたファイルのパス
             pathLocal: "",
+            
+            headers: [
+                { text: "動作", value: "download" },
+                { text: "ファイル名", value: "name"},
+                { text: "ファイルサイズ", value: "size", sortable: true},
+                { text: "アプロード日付", value: "date", sortable: true},
+                { text: "ファイル形式", value: "format"},
+                { text: "ファイルパス", value: "path"},
+            ],
+
+            items: [],
             
         }
     },
@@ -67,8 +42,15 @@ export default {
                 axios.post('http://localhost:8000/api/serchAll')
                     .then(response=>{
                         // データベースの検索結果を更新
-                        this.list = response.data.testData;
+                        // this.list = response.data.testData;
                     
+                        this.items = []
+                        let counter = 0;
+                        response.data.testData.forEach(item => {
+                            let itemSet = {"id": counter+1, "download": item[6], "name": item[0], "size": this.fileSizeUnit(item[1]), "date": item[2]+"/"+item[3]+"/"+item[4], "format": item[5], "path": item[6]}
+                            this.items.push(itemSet);
+                            counter++;
+                        });
 
                     })
 
@@ -122,13 +104,6 @@ export default {
             else
                 return Math.round(size/1000000000)+"TB"
         },
-        
-        // showRow(e){
-        //     document.getElementById('row-clicked').innerHTML = JSON.stringify();
-        // },
-        teamCheck(teamName){
-            console.log("teamName: "+teamName)
-        }
 
     },
     mounted() {
@@ -136,8 +111,15 @@ export default {
         axios.post('http://localhost:8000/api/serchAll')
             .then(response=>{
                 // データベースの検索結果を更新
-                this.list = response.data.testData;
+                // this.list = response.data.testData;
 
+                this.items = []
+                let counter = 0;
+                response.data.testData.forEach(item => {
+                    let itemSet = {"id": counter+1, "download": item[6], "name": item[0], "size": this.fileSizeUnit(item[1]), "date": item[2]+"/"+item[3]+"/"+item[4], "format": item[5], "path": item[6]}
+                    this.items.push(itemSet);
+                    counter++;
+                });
             })
     },
 
@@ -145,20 +127,6 @@ export default {
 
 </script>
 <template>
-    <EasyDataTable :headers="headers" :items="items">
-        <!-- <template #item-team="{ teamName, teamUrl }">
-            <a :href="teamUrl">{{ teamName }}</a>
-        </template> -->
-        <template #item-team="{ teamName, teamUrl }">
-            <button @click="teamCheck(teamName)">{{ teamName }}</button>
-        </template>
-        <!-- <template #item-indicator.weight="item">
-            {{ item.indicator.weight }} (lbs)
-        </template> -->
-    </EasyDataTable>
-
-    <!-- row clicked:<br />
-    <div id="row-clicked"></div> -->
     <div>
         <h1>アプロード機能</h1>
         <button type="submit" @click="updateSend">アプロード</button>
@@ -166,31 +134,11 @@ export default {
         <hr/>
         <br/>
         <h1>ダウンロード機能</h1>
-        <table>
-            <thead>
-                <tr>
-                <th colspan="6">データベース</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>ダウンロードリンク</td>
-                    <td>ファイル名</td>
-                    <td>ファイルサイズ</td>
-                    <td>アプロード日付</td>
-                    <td>ファイル形式</td>
-                    <td>ファイルパス</td>
-                </tr>
-                <tr v-for="item in list">
-                    <td><button @click="download(item[6])">リンク</button></td>
-                    <td>{{ item[0] }}</td>
-                    <td><p v-text=this.fileSizeUnit(item[1])></p></td>
-                    <td>{{ item[2] }}/{{ item[3] }}/{{ item[4] }}</td>
-                    <td>{{ item[5] }}</td>
-                    <td>{{ item[6] }}</td>
-                </tr>
-            </tbody>
-            </table>
+        <EasyDataTable :headers="headers" :items="items">
+            <template #item-download="{ path }">
+                <button @click="download(path)">ダウンロード</button>
+            </template>
+        </EasyDataTable>
     </div>
 </template>
   
