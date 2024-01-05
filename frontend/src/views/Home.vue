@@ -20,7 +20,7 @@ export default {
             headers: [
                 { text: "動作", value: "download" },
                 { text: "ファイル名", value: "name"},
-                { text: "ファイルサイズ", value: "size", sortable: true},
+                { text: "ファイルサイズ", value: "size"},
                 { text: "アプロード日付", value: "date", sortable: true},
                 { text: "ファイル形式", value: "format"},
                 { text: "ファイルパス", value: "path"},

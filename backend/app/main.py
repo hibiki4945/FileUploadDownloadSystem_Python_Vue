@@ -20,6 +20,13 @@ def searchAll():
 
     # 全ての資料を検索（ret1で検索結果を記録）
     result = cur.execute("SELECT * FROM file")
+    for  item  in  result.fetchall():
+        file_path = Path(item[6])
+        if(file_path.exists() is not True):
+            cur.execute(f"DELETE FROM file WHERE FILE_NAME = '{item[0]}'")
+            con.commit()
+
+    result = cur.execute("SELECT * FROM file")
     resultReturn = []
     for  item  in  result.fetchall():
         resultReturn.append(item)
