@@ -13,7 +13,7 @@ app = FastAPI()
 # データベースにある資料を検索
 @app.post("/api/serchAll")
 def searchAll():
-
+    print("search!")
     # データベースと接続
     con = sqlite3.connect("file_manage.db")
     cur = con.cursor()
@@ -21,12 +21,13 @@ def searchAll():
     # 全ての資料を検索（ret1で検索結果を記録）
     result = cur.execute("SELECT * FROM file")
     for  item  in  result.fetchall():
+        print(item[6])
         file_path = Path(item[6])
         if(file_path.exists() is not True):
             cur.execute(f"DELETE FROM file WHERE FILE_NAME = '{item[0]}'")
             con.commit()
 
-    result = cur.execute("SELECT * FROM file")
+    result = cur.execute("SELECT * FROM file WHERE DEL_FLG = 0")
     resultReturn = []
     for  item  in  result.fetchall():
         resultReturn.append(item)
@@ -64,15 +65,18 @@ def upload(file: UploadFile):
     # cur.execute("DROP TABLE file")
     
     # テーブルを作る（もしなければ）
-    cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270))")
+    cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),DEL_FLG INTEGER DEFAULT 0)")
     
+    # print("ok?")
+
     try: 
         # 資料をテーブルに追加
         cur.execute(f"""
             INSERT INTO file VALUES
-                ('{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{fileName}')
+                ('{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{fileName}', 0)
         """)
         con.commit()
+        # print("01")
     except:
         # テーブル中の資料を更新（もし当ファイル名が既に存在している）
         cur.execute(f"""
@@ -83,10 +87,12 @@ def upload(file: UploadFile):
                     UPDATE_MONTH = '{fileUpdateMonth}',
                     UPDATE_DAY = '{fileUpdateDay}',
                     FILE_FORMAT = '{fileType}',
-                    FILE_PATH = './database/{fileName}'
+                    FILE_PATH = './database/{fileName}',
+                    DEL_FLG = 0
                     WHERE FILE_NAME = '{fileName}'
         """)
         con.commit()
+        # print("02")
 
     # 成功メッセージを返す
     return {'code': '200'}
@@ -105,6 +111,24 @@ def download(s:Item):
 
     # 当ファイルパスでファイルを読み取り、ファイル名とともに返す
     return FileResponse(filePath, filename=fileName, media_type='application/octet-stream')
+
+# ファイルをダウンロード
+@app.post("/api/delete")
+def delete(s:Item):
+    fileName = str(s).split("'")[-2].split("/")[-1]
+
+    # データベースと接続
+    con = sqlite3.connect("file_manage.db")
+    cur = con.cursor()
+    cur.execute(f"""
+             UPDATE file
+                SET DEL_FLG = 1
+                    WHERE FILE_NAME = '{fileName}'
+        """)
+    con.commit()
+
+    # 成功メッセージを返す
+    return {'code': '200'}
 
 # ホームページ
 @app.get("/")

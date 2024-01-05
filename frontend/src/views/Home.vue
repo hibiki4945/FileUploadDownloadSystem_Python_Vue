@@ -38,21 +38,8 @@ export default {
             .then(response=>{
                 // メッセージを画面に表示
                 alert("アプロードしました");
-                // データベースにあるファイルの資料を検索
-                axios.post('http://localhost:8000/api/serchAll')
-                    .then(response=>{
-                        // データベースの検索結果を更新
-                        // this.list = response.data.testData;
-                    
-                        this.items = []
-                        let counter = 0;
-                        response.data.testData.forEach(item => {
-                            let itemSet = {"id": counter+1, "download": item[6], "name": item[0], "size": this.fileSizeUnit(item[1]), "date": item[2]+"/"+item[3]+"/"+item[4], "format": item[5], "path": item[6]}
-                            this.items.push(itemSet);
-                            counter++;
-                        });
-
-                    })
+                
+                this.searchAll();
 
             })
         },
@@ -104,23 +91,41 @@ export default {
             else
                 return Math.round(size/1000000000)+"TB"
         },
+        deleteFile(path){
+            
+            // ファイルをダウンロード
+            axios.post('http://localhost:8000/api/delete',
+                {s: path},// ファイルパスを送る
+                {        
+                    responseType: 'blob', // apiからダウンロードしたファイルをBlobとして受け入れる
+                }
+                )
+                .then(response=>{
+                    // console.log(response.code)
+                  
+                    this.searchAll();
+                })
+        },
+        searchAll(){
+            // 最初にデータベースにある資料を検索
+            axios.post('http://localhost:8000/api/serchAll')
+                .then(response=>{
+                    // データベースの検索結果を更新
+                    // this.list = response.data.testData;
+
+                    this.items = []
+                    let counter = 0;
+                    response.data.testData.forEach(item => {
+                        let itemSet = {"id": counter+1, "download": item[6], "name": item[0], "size": this.fileSizeUnit(item[1]), "date": item[2]+"/"+item[3]+"/"+item[4], "format": item[5], "path": item[6]}
+                        this.items.push(itemSet);
+                        counter++;
+                    });
+                })
+            }
 
     },
     mounted() {
-        // 最初にデータベースにある資料を検索
-        axios.post('http://localhost:8000/api/serchAll')
-            .then(response=>{
-                // データベースの検索結果を更新
-                // this.list = response.data.testData;
-
-                this.items = []
-                let counter = 0;
-                response.data.testData.forEach(item => {
-                    let itemSet = {"id": counter+1, "download": item[6], "name": item[0], "size": this.fileSizeUnit(item[1]), "date": item[2]+"/"+item[3]+"/"+item[4], "format": item[5], "path": item[6]}
-                    this.items.push(itemSet);
-                    counter++;
-                });
-            })
+        this.searchAll();
     },
 
 }
@@ -137,6 +142,7 @@ export default {
         <EasyDataTable :headers="headers" :items="items">
             <template #item-download="{ path }">
                 <button @click="download(path)">ダウンロード</button>
+                <button @click="deleteFile(path)">削除</button>
             </template>
         </EasyDataTable>
     </div>
