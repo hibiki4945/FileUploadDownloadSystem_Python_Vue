@@ -3,164 +3,41 @@
 // axiosでapiと接続
 import axios from 'axios';
 
-import { defineComponent, reactive } from "vue";
-import TableLite from "../components/TableLite.vue";
+import { ref } from 'vue';
 
-// Fake Data for 'asc' sortable
-const sampleData1 = (offst, limit) => {
-  offst = offst + 1;
-  let data = [];
-  for (let i = offst; i <= limit; i++) {
-    data.push({
-      id: i,
-      name: "TEST" + i,
-      email: "test" + i + "@example.com",
-    });
-  }
-  return data;
+const ClickRowArgument = {
+  isSelected: false,
+  indexInCurrentPage: 0,
 };
 
-// Fake Data for 'desc' sortable
-const sampleData2 = (offst, limit) => {
-  let data = [];
-  for (let i = limit; i > offst; i--) {
-    data.push({
-      id: i,
-      name: "TEST" + i,
-      email: "test" + i + "@example.com",
-    });
-  }
-  return data;
-};
+const headers = [
+  { text: "PLAYER", value: "player" },
+  { text: "TEAM", value: "team"},
+  { text: "NUMBER", value: "number"},
+  { text: "POSITION", value: "position"},
+  { text: "HEIGHT", value: "indicator.height"},
+  { text: "WEIGHT", value: "indicator.weight", sortable: true},
+  { text: "LAST ATTENDED", value: "lastAttended"},
+  { text: "COUNTRY", value: "country"},
+  { text: "Operation", value: "operation"},
+];
+
+const items = [
+    { "id": 1, "player": "Stephen Curry", "page": "https://www.nba.com/player/201939/stephen-curry", "avator": "https://bafkreih3oswhrhrvxwhebuqqnlqtklnth5pbc2q3iv6446icpltt6tymvy.ipfs.dweb.link/?filename=Stephen.png", "teamName": "GSW", "teamUrl": "https://www.nba.com/team/1610612744/warriors", "number": 30, "position": 'G', indicator: {"height": '6-2', "weight": 185}, "lastAttended": "Davidson", "country": "USA"},
+    { "id": 2, "player": "Lebron James",  "page": "https://www.nba.com/player/2544/lebron-james", "avator": "https://bafkreigphmpdonfxpcb7lwrzv754t2xp2cw3segdpsj44rpurzwnuowhsq.ipfs.dweb.link/?filename=lebron.png", "teamName": "LAL", "teamUrl": "https://www.nba.com/team/1610612747/lakers", "number": 6, "position": 'F', indicator: {"height": '6-9', "weight": 250}, "lastAttended": "St. Vincent-St. Mary HS (OH)", "country": "USA"},
+    { "id": 3, "player": "Kevin Durant", "page": "https://www.nba.com/player/201142/kevin-durant", "avator": "https://bafkreihvjvturzol7kfdafrnpxvilj2rti5bwyee7wbvtxogrx34uzjfz4.ipfs.dweb.link/?filename=Kevin.png", "teamName": "BKN", "teamUrl": "https://www.nba.com/team/1610612751/nets", "number": 7, "position": 'F', indicator: {"height": '6-10', "weight": 240}, "lastAttended": "Texas-Austin", "country": "USA"},
+    { "id": 4, "player": "Giannis Antetokounmpo", "page": "https://www.nba.com/player/203507/giannis-antetokounmpo", "avator": "https://bafkreie26rcr5ppdpqrclr3kpk7p7hqyypjo3o2g43yk35ly4e5dmwxigm.ipfs.dweb.link/?filename=Giannis.png", "teamName": "MIL", "teamUrl": "https://www.nba.com/team/1610612749/bucks", "number": 34, "position": 'F', indicator: {"height": '6-11', "weight": 242}, "lastAttended": "Filathlitikos", "country": "Greece"},
+  ];
 
 export default { 
     // components:{
     //     RouterLink,
     // },
-    components: { TableLite },
-    
+    // components: { TableLite },
     setup() {
-        // Table config
-        const table = reactive({
-        isLoading: false,
-        isReSearch: false,
-        rowClasses: (row) => {
-            if (row.id == 1) {
-            return ["aaa", "is-id-one"];
-            }
-            return ["bbb", "other"];
-        },
-        columns: [
-            {
-            label: "ID",
-            field: "id",
-            width: "3%",
-            sortable: true,
-            isKey: true,
-            },
-            {
-            label: "Name",
-            field: "name",
-            width: "10%",
-            sortable: true,
-            display: function (row) {
-                return (
-                '<a href="#" data-id="' +
-                row.id +
-                '" class="is-rows-el name-btn">' +
-                row.name +
-                "</a>"
-                );
-            },
-            },
-            {
-            label: "Email",
-            field: "email",
-            width: "15%",
-            sortable: true,
-            },
-            {
-            label: "",
-            field: "quick",
-            width: "10%",
-            display: function (row) {
-                return (
-                '<button type="button" data-id="' +
-                row.id +
-                '" class="is-rows-el quick-btn">Button</button>'
-                );
-            },
-            },
-        ],
-        rows: [],
-        totalRecordCount: 0,
-        sortable: {
-            order: "id",
-            sort: "asc",
-        },
-        messages: {
-            pagingInfo: "Showing {0}-{1} of {2}",
-            pageSizeChangeLabel: "Row count:",
-            gotoPageLabel: "Go to page:",
-            noDataAvailable: "No data",
-        },
-        });
-
-        /**
-         * Search Event
-         */
-        const doSearch = (offset, limit, order, sort) => {
-        table.isLoading = true;
-        setTimeout(() => {
-            table.isReSearch = offset == undefined ? true : false;
-            if (offset >= 10 || limit >= 20) {
-            limit = 20;
-            }
-            if (sort == "asc") {
-            table.rows = sampleData1(offset, limit);
-            } else {
-            table.rows = sampleData2(offset, limit);
-            }
-            table.totalRecordCount = 20;
-            table.sortable.order = order;
-            table.sortable.sort = sort;
-        }, 600);
-        };
-
-        /**
-         * Loading finish event
-         */
-        const tableLoadingFinish = (elements) => {
-        table.isLoading = false;
-        Array.prototype.forEach.call(elements, function (element) {
-            if (element.classList.contains("name-btn")) {
-            element.addEventListener("click", function () {
-                console.log(this.dataset.id + " name-btn click!!");
-            });
-            }
-            if (element.classList.contains("quick-btn")) {
-            element.addEventListener("click", function () {
-                console.log(this.dataset.id + " quick-btn click!!");
-            });
-            }
-        });
-        };
-
-        /**
-         * Row checked event
-         */
-        const updateCheckedRows = (rowsKey) => {
-        console.log(rowsKey);
-        };
-
-        // First get data
-        doSearch(0, 10, "id", "asc");
-
         return {
-        table,
-        doSearch,
-        tableLoadingFinish,
-        updateCheckedRows,
+            headers: ref(headers),
+            items: ref(items),
         };
     },
     data() {
@@ -176,17 +53,6 @@ export default {
             // ダウンロードしたファイルのパス
             pathLocal: "",
             
-            headers: [
-                { text: "Name", value: "name" },
-                { text: "Height (cm)", value: "height", sortable: true },
-                { text: "Weight (kg)", value: "weight", sortable: true },
-                { text: "Age", value: "age", sortable: true }
-            ],
-            items: [
-                { "name": "Curry", "height": 178, "weight": 77, "age": 20 },
-                { "name": "James", "height": 180, "weight": 75, "age": 21 },
-                { "name": "Jordan", "height": 181, "weight": 73, "age": 22 }
-            ]
         }
     },
     methods: {
@@ -202,6 +68,8 @@ export default {
                     .then(response=>{
                         // データベースの検索結果を更新
                         this.list = response.data.testData;
+                    
+
                     })
 
             })
@@ -254,6 +122,14 @@ export default {
             else
                 return Math.round(size/1000000000)+"TB"
         },
+        
+        // showRow(e){
+        //     document.getElementById('row-clicked').innerHTML = JSON.stringify();
+        // },
+        teamCheck(teamName){
+            console.log("teamName: "+teamName)
+        }
+
     },
     mounted() {
         // 最初にデータベースにある資料を検索
@@ -261,6 +137,7 @@ export default {
             .then(response=>{
                 // データベースの検索結果を更新
                 this.list = response.data.testData;
+
             })
     },
 
@@ -268,20 +145,20 @@ export default {
 
 </script>
 <template>
-      <table-lite
-        :has-checkbox="true"
-        :is-loading="table.isLoading"
-        :is-re-search="table.isReSearch"
-        :columns="table.columns"
-        :rows="table.rows"
-        :rowClasses="table.rowClasses"
-        :total="table.totalRecordCount"
-        :sortable="table.sortable"
-        :messages="table.messages"
-        @do-search="doSearch"
-        @is-finished="tableLoadingFinish"
-        @return-checked-rows="updateCheckedRows"
-    ></table-lite>
+    <EasyDataTable :headers="headers" :items="items">
+        <!-- <template #item-team="{ teamName, teamUrl }">
+            <a :href="teamUrl">{{ teamName }}</a>
+        </template> -->
+        <template #item-team="{ teamName, teamUrl }">
+            <button @click="teamCheck(teamName)">{{ teamName }}</button>
+        </template>
+        <!-- <template #item-indicator.weight="item">
+            {{ item.indicator.weight }} (lbs)
+        </template> -->
+    </EasyDataTable>
+
+    <!-- row clicked:<br />
+    <div id="row-clicked"></div> -->
     <div>
         <h1>アプロード機能</h1>
         <button type="submit" @click="updateSend">アプロード</button>
@@ -315,9 +192,5 @@ export default {
             </tbody>
             </table>
     </div>
-    <EasyDataTable
-      :headers="headers"
-      :items="items"
-    />
 </template>
   
