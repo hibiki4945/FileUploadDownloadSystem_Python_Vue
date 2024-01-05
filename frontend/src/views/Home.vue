@@ -27,12 +27,23 @@ export default {
             ],
 
             items: [],
+            clientName: "A01",
             
         }
     },
     methods: {
         // ファイルのアプロード
         updateSend(){
+            this.param.append('clientName','A01');
+            // console.log('clientName: '+this.param.get('clientName'));
+            if(this.param.get('file') === null){
+                alert("ファイルを選択してください")
+                return;
+            }
+            if(this.param.get('file').size >= 100000000){ //100MB
+                alert("100MB以内のファイルを選択してください")
+                return;
+            }
             // ファイルのアプロード
             axios.post('http://localhost:8000/api/upload',this.param,this.config)
             .then(response=>{
@@ -121,7 +132,7 @@ export default {
                         counter++;
                     });
                 })
-            }
+        }
 
     },
     mounted() {
