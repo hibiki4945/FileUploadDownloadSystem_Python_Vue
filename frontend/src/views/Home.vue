@@ -33,6 +33,19 @@ export default {
     methods: {
         // ファイルのアプロード
         updateSend(){
+            // console.log(this.param)
+            // console.log(this.param.get(file))
+            // console.log(this.param[file])
+            // let size = this.param.get('file').size;
+            // console.log("file.size: "+file.size)
+            if(this.param.get('file') === null){ //100MB
+                alert("ファイルを選択ください")
+                return;
+            }
+            if(this.param.get('file').size >= 100000000){ //100MB
+                alert("100MB以内のファイルを選択ください")
+                return;
+            }
             // ファイルのアプロード
             axios.post('http://localhost:8000/api/upload',this.param,this.config)
             .then(response=>{
@@ -46,8 +59,13 @@ export default {
         // 選択したファイルを更新（paramに入れる）
         update(e){
             let file = e.target.files[0];
+            // console.log("file.size: "+file.size)
             this.param = new FormData();
+            // console.log("this.param: "+this.param)
             this.param.append('file',file);
+            // console.log("this.param: "+this.param)
+            // console.log("this.param: "+this.param.get('file'))
+            // console.log("this.param: "+this.param.get('file').size)
         },
         // ファイルをダウンロード
         download(path){
@@ -121,7 +139,7 @@ export default {
                         counter++;
                     });
                 })
-            }
+        }
 
     },
     mounted() {
