@@ -27,23 +27,21 @@ export default {
             ],
 
             items: [],
+            clientName: "A01",
             
         }
     },
     methods: {
         // ファイルのアプロード
         updateSend(){
-            // console.log(this.param)
-            // console.log(this.param.get(file))
-            // console.log(this.param[file])
-            // let size = this.param.get('file').size;
-            // console.log("file.size: "+file.size)
-            if(this.param.get('file') === null){ //100MB
-                alert("ファイルを選択ください")
+            this.param.append('clientName','A01');
+            // console.log('clientName: '+this.param.get('clientName'));
+            if(this.param.get('file') === null){
+                alert("ファイルを選択してください")
                 return;
             }
             if(this.param.get('file').size >= 100000000){ //100MB
-                alert("100MB以内のファイルを選択ください")
+                alert("100MB以内のファイルを選択してください")
                 return;
             }
             // ファイルのアプロード
@@ -59,13 +57,8 @@ export default {
         // 選択したファイルを更新（paramに入れる）
         update(e){
             let file = e.target.files[0];
-            // console.log("file.size: "+file.size)
             this.param = new FormData();
-            // console.log("this.param: "+this.param)
             this.param.append('file',file);
-            // console.log("this.param: "+this.param)
-            // console.log("this.param: "+this.param.get('file'))
-            // console.log("this.param: "+this.param.get('file').size)
         },
         // ファイルをダウンロード
         download(path){
