@@ -17,7 +17,7 @@ class Item(BaseModel):
 # データベースにある資料を検索
 @app.post("/api/serchAll")
 def searchAll():
-    print("search!")
+    # print("search!")
     # データベースと接続
     con = sqlite3.connect("file_manage.db")
     cur = con.cursor()
@@ -26,17 +26,18 @@ def searchAll():
     result = cur.execute("SELECT * FROM file")
     for  item  in  result.fetchall():
         # print(item[6])
-        file_path = Path(item[6])
+        file_path = Path(item[7])
         if(file_path.exists() is not True):
-            print("file_path?")
-            print("path: "+item[6])
-            cur.execute(f"DELETE FROM file WHERE SAVE_NAME = '{item[7]}'")
+            # print("file_path?")
+            # print("path: "+item[7])
+            cur.execute(f"DELETE FROM file WHERE FILE_NO = {item[0]}")
             con.commit()
 
     result = cur.execute("SELECT * FROM file WHERE DEL_FLG = 0")
     resultReturn = []
     for  item  in  result.fetchall():
         resultReturn.append(item)
+        # print("resultReturn!")
     con.close()
 
     # 検索結果を返す
@@ -46,11 +47,23 @@ def searchAll():
 @app.post("/api/upload")
 def upload(file: UploadFile,clientName: str = Form(...)):
 
-    print("clientName: "+clientName)
+    # print("clientName: "+clientName)
+    # print("fileName: "+file.filename)
     
     # データベースと接続
     con = sqlite3.connect("file_manage.db")
     cur = con.cursor()
+
+    # cur.execute("DROP TABLE file")
+
+    DuplicateFile = cur.execute(f"""select count(*) from file f
+                   where f.FILE_NAME ='{file.filename}' and
+                         f.SAVE_NAME LIKE '%{clientName}';
+                """)
+    for item in DuplicateFile:
+        DuplicateFileNum = item[0]
+    if(DuplicateFileNum == 1):
+        return {'code': '400'}
 
     # cur.execute("DROP TABLE client")
     cur.execute("CREATE TABLE IF NOT EXISTS client(CLIENT_NAME varchar(3) primary key,FILE_NAME_COUNTER varchar(14))")
@@ -60,7 +73,11 @@ def upload(file: UploadFile,clientName: str = Form(...)):
                 """)
     for item in clientNameNumOrigin:
         clientNameNum = item[0]
+        # print("clientNameNum: ")
+        # print(clientNameNum)
     current_dateTime = datetime.now()
+    # print("current_dateTime: ")
+    # print(current_dateTime)
     current_dateTime_fix = str('{:0>4d}'.format(current_dateTime.year)+'{:0>2d}'.format(current_dateTime.month)+'{:0>2d}'.format(current_dateTime.day))
     if(clientNameNum == 0):
         cur.execute(f"""
@@ -71,9 +88,14 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     result = cur.execute(f"SELECT * FROM client WHERE CLIENT_NAME = '{clientName}'")
     for  item  in  result.fetchall():
         clientNum = item[1]
+        print("clientNum: ")
+        print(clientNum)
     
+    # print("clientNum[:-6]: "+clientNum[:-6])
+    # print("current_dateTime_fix: "+current_dateTime_fix)
+    # print("clientNum[:-6] != current_dateTime_fix: "+clientNum[:-6] != current_dateTime_fix)
     # 1. 判斷clientNum是否為今天
-    if(clientNum[:-6] != current_dateTime_fix):
+    if(clientNum[:-6] == current_dateTime_fix):
         #    1. 為今天的情況(數字加1)
         clientNumTemp = int(clientNum[8:])
         clientNumTemp += 1
@@ -82,6 +104,13 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     else:
         #    2. 不為今天的情況(日期更新&計數改成"000001")
         clientNumNew = current_dateTime_fix+"000001"
+    # ?
+    cur.execute(f"""
+            UPDATE client
+            SET FILE_NAME_COUNTER = '{clientNumNew}'
+                WHERE CLIENT_NAME = '{clientName}'
+    """)
+    con.commit()
 
     # 受け入れたファイルをbytesとして保存、ファイル名も保存
     fileBytes = file.file.read()
@@ -92,7 +121,7 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     fout.close()
 
     # データベースに必要な資料を用意
-    path = Path('./database', clientNumNew+"."+fileName.split(".")[-1])
+    path = Path('./database', clientNumNew+clientName+"."+fileName.split(".")[-1])
     fileSize = path.stat().st_size
     # fileUpdateTime = time.localtime(path.stat().st_mtime)
     fileUpdateTimeOrigin = time.strftime("%Y-%m-%d",time.localtime(path.stat().st_mtime))
@@ -102,60 +131,52 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     fileUpdateDay = fileUpdateTime[2]
     fileType = fileName.split(".")[-1]
 
-    cur.execute("DROP TABLE file")
-    
     # テーブルを作る（もしなければ）
-    cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
+    cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NO integer primary key AUTOINCREMENT,FILE_NAME varchar(270),FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
+    # cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
     # cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),DEL_FLG INTEGER DEFAULT 0)")
     
-    try: 
-        # 資料をテーブルに追加
-        cur.execute(f"""
-            INSERT INTO file VALUES
-                ('{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{clientNumNew}{clientName}.{fileType}', '{clientNumNew}{clientName}', 0);
-        """)
-        # cur.execute(f"""
-        #     INSERT INTO file VALUES
-        #         ('{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{fileName}', '{clientNumNew}{clientName}', 0);
-        # """)
-        con.commit()
-        print("01")
-    except:
-        # print("02")
-    #     # テーブル中の資料を更新（もし当ファイル名が既に存在している）
-    #     cur.execute(f"""
-    #          UPDATE file
-    #             SET FILE_NAME = '{fileName}',
-    #                 FILE_SIZE = {fileSize},
-    #                 UPDATE_YEAR = '{fileUpdateYear}',
-    #                 UPDATE_MONTH = '{fileUpdateMonth}',
-    #                 UPDATE_DAY = '{fileUpdateDay}',
-    #                 FILE_FORMAT = '{fileType}',
-    #                 FILE_PATH = './database/{fileName}',
-    #                 DEL_FLG = 0
-    #                 WHERE FILE_NAME = '{fileName}'
-    #     """)
-    #     con.commit()
-        print("02")
+    # 資料をテーブルに追加
+    cur.execute(f"""
+        INSERT INTO file VALUES
+            (NULL,'{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{clientNumNew}{clientName}.{fileType}', '{clientNumNew}{clientName}', 0);
+    """)
+    con.commit()
 
     # 成功メッセージを返す
     return {'code': '200'}
 
 # ファイルをダウンロード
 @app.post("/api/download")
-def download(s:Item):
-    
-    # ファイルパスとファイル名を取得
-    filePath = Path(str(s).split("'")[-2])
-    fileName = str(s).split("'")[-2].split(".")[0]
+def download(userName: str = Form(...), name: str = Form(...)):
 
-    # 当ファイルパスでファイルを読み取り、ファイル名とともに返す
+    print("userName: "+userName)
+    print("name: "+name)
+
+    # データベースと接続
+    con = sqlite3.connect("file_manage.db")
+    cur = con.cursor()
+
+    result = cur.execute(f"SELECT * FROM file WHERE FILE_NAME = '{name}' and SAVE_NAME LIKE '%{userName}'")
+    for  item  in  result.fetchall():
+        resultGet = item[7]
+        print(resultGet)
+    
+    filePath = Path(resultGet)
+    fileName = name
+
+    # # 当ファイルパスでファイルを読み取り、ファイル名とともに返す
     return FileResponse(filePath, filename=fileName, media_type='application/octet-stream')
+    # return
 
 # ファイルをダウンロード
 @app.post("/api/delete")
 def delete(s:Item):
-    fileName = str(s).split("'")[-2].split("/")[-1]
+    # print("delete!")
+    # print(s)
+    fileNo = str(s).split("'")[-2]
+    # print("fileNo: "+fileNo)
+    # fileName = str(s).split("'")[-2].split("/")[-1]
 
     # データベースと接続
     con = sqlite3.connect("file_manage.db")
@@ -163,7 +184,7 @@ def delete(s:Item):
     cur.execute(f"""
              UPDATE file
                 SET DEL_FLG = 1
-                    WHERE FILE_NAME = '{fileName}'
+                    WHERE FILE_NO = {fileNo}
         """)
     con.commit()
 

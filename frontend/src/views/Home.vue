@@ -12,13 +12,18 @@ export default {
             config: {
                 headers:{'Content-Type':'multipart/form-data'}
             },
+
+            paramDownload: new FormData(),
+            // config: {
+            //     headers:{'Content-Type':'multipart/form-data'}
+            // },
             // データベースの検索結果
             // list: null,
             // ダウンロードしたファイルのパス
             pathLocal: "",
             
             headers: [
-                { text: "動作", value: "download" },
+                { text: "動作", value: "do" },
                 { text: "ファイル名", value: "name"},
                 { text: "ファイルサイズ", value: "size"},
                 { text: "アプロード日付", value: "date", sortable: true},
@@ -47,10 +52,16 @@ export default {
             // ファイルのアプロード
             axios.post('http://localhost:8000/api/upload',this.param,this.config)
             .then(response=>{
-                // メッセージを画面に表示
-                alert("アプロードしました");
-                
-                this.searchAll();
+                if(response.data.code === "200"){
+                    // メッセージを画面に表示
+                    alert("アプロードしました");
+                    
+                    this.searchAll();
+                }
+                else{
+                    alert("ファイル名が被った");
+
+                }
 
             })
         },
@@ -61,11 +72,15 @@ export default {
             this.param.append('file',file);
         },
         // ファイルをダウンロード
-        download(path){
+        // download(path){
+        download(saveName, name){
+            
+            this.paramDownload.append('userName',saveName.substring(14));
+            this.paramDownload.append('name',name);
             // ファイルをダウンロード
-            axios.post('http://localhost:8000/api/download',
-                {s: path},// ファイルパスを送る
-                {        
+            // axios.post('http://localhost:8000/api/download',this.paramDownload,this.config,
+            axios.post('http://localhost:8000/api/download',this.paramDownload,
+                {
                     responseType: 'blob', // apiからダウンロードしたファイルをBlobとして受け入れる
                 }
                 )
@@ -77,10 +92,11 @@ export default {
                         const link = document.createElement('a');
                         // リンク先は当ファイルと設定
                         link.href = url;
-                        // pathをStringとして保存
-                        this.pathLocal = String(path)
-                        // ファイル名を取得
-                        let fileNameFull = this.pathLocal.split("/")[2]
+                        // // pathをStringとして保存
+                        // this.pathLocal = String(path)
+                        // // ファイル名を取得
+                        // let fileNameFull = this.pathLocal.split("/")[2]
+                        let fileNameFull = name
                         // 'download'は当リンクの内容をダウンロード
                         // fileNameFullはファイル名を設定
                         link.setAttribute('download', fileNameFull);
@@ -103,16 +119,20 @@ export default {
                 return Math.round(size/1000000000)+"TB"
         },
         deleteFile(path){
+            // console.log("path? is "+path.type())
+            // console.log(path)
+            let pathStr = path.toString()
+            // console.log(pathStr)
             
             // ファイルをダウンロード
             axios.post('http://localhost:8000/api/delete',
-                {s: path},// ファイルパスを送る
+                {s: pathStr},// ファイルパスを送る
                 {        
                     responseType: 'blob', // apiからダウンロードしたファイルをBlobとして受け入れる
                 }
                 )
                 .then(response=>{
-                    // console.log(response.code)
+                    // console.log(response.data.code)
                   
                     this.searchAll();
                 })
@@ -127,7 +147,7 @@ export default {
                     this.items = []
                     let counter = 0;
                     response.data.testData.forEach(item => {
-                        let itemSet = {"id": counter+1, "download": item[6], "name": item[0], "size": this.fileSizeUnit(item[1]), "date": item[2]+"/"+item[3]+"/"+item[4], "format": item[5], "path": item[6]}
+                        let itemSet = {"id": counter+1, "fileNo": item[0], "saveName": item[8], "name": item[1], "size": this.fileSizeUnit(item[2]), "date": item[3]+"/"+item[4]+"/"+item[5], "format": item[6], "path": item[7]}
                         this.items.push(itemSet);
                         counter++;
                     });
@@ -151,9 +171,11 @@ export default {
         <br/>
         <h1>ダウンロード機能</h1>
         <EasyDataTable :headers="headers" :items="items">
-            <template #item-download="{ path }">
-                <button @click="download(path)">ダウンロード</button>
-                <button @click="deleteFile(path)">削除</button>
+            <!-- <template #item-do="{ path,fileNo }"> -->
+            <template #item-do="{ saveName,name,fileNo }">
+                <!-- <button @click="download(path)">ダウンロード</button> -->
+                <button @click="download(saveName, name)">ダウンロード</button>
+                <button @click="deleteFile(fileNo)">削除</button>
             </template>
         </EasyDataTable>
     </div>
