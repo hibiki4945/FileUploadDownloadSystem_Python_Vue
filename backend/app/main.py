@@ -105,12 +105,12 @@ def upload(file: UploadFile,clientName: str = Form(...)):
         #    2. 不為今天的情況(日期更新&計數改成"000001")
         clientNumNew = current_dateTime_fix+"000001"
     # ?
-        cur.execute(f"""
-             UPDATE client
-                SET FILE_NAME_COUNTER = '{clientNumNew}'
-                    WHERE CLIENT_NAME = '{clientName}'
-        """)
-        con.commit()
+    cur.execute(f"""
+            UPDATE client
+            SET FILE_NAME_COUNTER = '{clientNumNew}'
+                WHERE CLIENT_NAME = '{clientName}'
+    """)
+    con.commit()
 
     # 受け入れたファイルをbytesとして保存、ファイル名も保存
     fileBytes = file.file.read()
@@ -136,35 +136,12 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     # cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
     # cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),DEL_FLG INTEGER DEFAULT 0)")
     
-    try: 
-        # 資料をテーブルに追加
-        cur.execute(f"""
-            INSERT INTO file VALUES
-                (NULL,'{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{clientNumNew}{clientName}.{fileType}', '{clientNumNew}{clientName}', 0);
-        """)
-        # cur.execute(f"""
-        #     INSERT INTO file VALUES
-        #         ('{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{fileName}', '{clientNumNew}{clientName}', 0);
-        # """)
-        con.commit()
-        print("01")
-    except:
-        # print("02")
-    #     # テーブル中の資料を更新（もし当ファイル名が既に存在している）
-    #     cur.execute(f"""
-    #          UPDATE file
-    #             SET FILE_NAME = '{fileName}',
-    #                 FILE_SIZE = {fileSize},
-    #                 UPDATE_YEAR = '{fileUpdateYear}',
-    #                 UPDATE_MONTH = '{fileUpdateMonth}',
-    #                 UPDATE_DAY = '{fileUpdateDay}',
-    #                 FILE_FORMAT = '{fileType}',
-    #                 FILE_PATH = './database/{fileName}',
-    #                 DEL_FLG = 0
-    #                 WHERE FILE_NAME = '{fileName}'
-    #     """)
-    #     con.commit()
-        print("02")
+    # 資料をテーブルに追加
+    cur.execute(f"""
+        INSERT INTO file VALUES
+            (NULL,'{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{clientNumNew}{clientName}.{fileType}', '{clientNumNew}{clientName}', 0);
+    """)
+    con.commit()
 
     # 成功メッセージを返す
     return {'code': '200'}
