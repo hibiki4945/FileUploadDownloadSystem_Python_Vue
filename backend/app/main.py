@@ -26,17 +26,18 @@ def searchAll():
     result = cur.execute("SELECT * FROM file")
     for  item  in  result.fetchall():
         # print(item[6])
-        file_path = Path(item[6])
+        file_path = Path(item[7])
         if(file_path.exists() is not True):
             print("file_path?")
-            print("path: "+item[6])
-            cur.execute(f"DELETE FROM file WHERE SAVE_NAME = '{item[7]}'")
+            print("path: "+item[7])
+            cur.execute(f"DELETE FROM file WHERE FILE_NO = {item[0]}")
             con.commit()
 
     result = cur.execute("SELECT * FROM file WHERE DEL_FLG = 0")
     resultReturn = []
     for  item  in  result.fetchall():
         resultReturn.append(item)
+        print("resultReturn!")
     con.close()
 
     # 検索結果を返す
@@ -105,14 +106,15 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     cur.execute("DROP TABLE file")
     
     # テーブルを作る（もしなければ）
-    cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
+    cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NO integer primary key AUTOINCREMENT,FILE_NAME varchar(270),FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
+    # cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
     # cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),DEL_FLG INTEGER DEFAULT 0)")
     
     try: 
         # 資料をテーブルに追加
         cur.execute(f"""
             INSERT INTO file VALUES
-                ('{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{clientNumNew}{clientName}.{fileType}', '{clientNumNew}{clientName}', 0);
+                (0,'{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{clientNumNew}{clientName}.{fileType}', '{clientNumNew}{clientName}', 0);
         """)
         # cur.execute(f"""
         #     INSERT INTO file VALUES
@@ -155,7 +157,11 @@ def download(s:Item):
 # ファイルをダウンロード
 @app.post("/api/delete")
 def delete(s:Item):
-    fileName = str(s).split("'")[-2].split("/")[-1]
+    # print("delete!")
+    # print(s)
+    fileNo = str(s).split("'")[-2]
+    # print("fileNo: "+fileNo)
+    # fileName = str(s).split("'")[-2].split("/")[-1]
 
     # データベースと接続
     con = sqlite3.connect("file_manage.db")
@@ -163,7 +169,7 @@ def delete(s:Item):
     cur.execute(f"""
              UPDATE file
                 SET DEL_FLG = 1
-                    WHERE FILE_NAME = '{fileName}'
+                    WHERE FILE_NO = {fileNo}
         """)
     con.commit()
 

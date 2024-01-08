@@ -18,7 +18,7 @@ export default {
             pathLocal: "",
             
             headers: [
-                { text: "動作", value: "download" },
+                { text: "動作", value: "do" },
                 { text: "ファイル名", value: "name"},
                 { text: "ファイルサイズ", value: "size"},
                 { text: "アプロード日付", value: "date", sortable: true},
@@ -103,16 +103,20 @@ export default {
                 return Math.round(size/1000000000)+"TB"
         },
         deleteFile(path){
+            // console.log("path? is "+path.type())
+            // console.log(path)
+            let pathStr = path.toString()
+            // console.log(pathStr)
             
             // ファイルをダウンロード
             axios.post('http://localhost:8000/api/delete',
-                {s: path},// ファイルパスを送る
+                {s: pathStr},// ファイルパスを送る
                 {        
                     responseType: 'blob', // apiからダウンロードしたファイルをBlobとして受け入れる
                 }
                 )
                 .then(response=>{
-                    // console.log(response.code)
+                    // console.log(response.data.code)
                   
                     this.searchAll();
                 })
@@ -127,7 +131,7 @@ export default {
                     this.items = []
                     let counter = 0;
                     response.data.testData.forEach(item => {
-                        let itemSet = {"id": counter+1, "download": item[6], "name": item[0], "size": this.fileSizeUnit(item[1]), "date": item[2]+"/"+item[3]+"/"+item[4], "format": item[5], "path": item[6]}
+                        let itemSet = {"id": counter+1, "fileNo": item[0], "download": item[7], "name": item[1], "size": this.fileSizeUnit(item[2]), "date": item[3]+"/"+item[4]+"/"+item[5], "format": item[6], "path": item[7]}
                         this.items.push(itemSet);
                         counter++;
                     });
@@ -151,9 +155,9 @@ export default {
         <br/>
         <h1>ダウンロード機能</h1>
         <EasyDataTable :headers="headers" :items="items">
-            <template #item-download="{ path }">
+            <template #item-do="{ path,fileNo }">
                 <button @click="download(path)">ダウンロード</button>
-                <button @click="deleteFile(path)">削除</button>
+                <button @click="deleteFile(fileNo)">削除</button>
             </template>
         </EasyDataTable>
     </div>
