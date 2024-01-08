@@ -12,6 +12,11 @@ export default {
             config: {
                 headers:{'Content-Type':'multipart/form-data'}
             },
+
+            paramDownload: new FormData(),
+            // config: {
+            //     headers:{'Content-Type':'multipart/form-data'}
+            // },
             // データベースの検索結果
             // list: null,
             // ダウンロードしたファイルのパス
@@ -67,11 +72,15 @@ export default {
             this.param.append('file',file);
         },
         // ファイルをダウンロード
-        download(path){
+        // download(path){
+        download(saveName, name){
+            
+            this.paramDownload.append('userName',saveName.substring(14));
+            this.paramDownload.append('name',name);
             // ファイルをダウンロード
-            axios.post('http://localhost:8000/api/download',
-                {s: path},// ファイルパスを送る
-                {        
+            // axios.post('http://localhost:8000/api/download',this.paramDownload,this.config,
+            axios.post('http://localhost:8000/api/download',this.paramDownload,
+                {
                     responseType: 'blob', // apiからダウンロードしたファイルをBlobとして受け入れる
                 }
                 )
@@ -83,10 +92,11 @@ export default {
                         const link = document.createElement('a');
                         // リンク先は当ファイルと設定
                         link.href = url;
-                        // pathをStringとして保存
-                        this.pathLocal = String(path)
-                        // ファイル名を取得
-                        let fileNameFull = this.pathLocal.split("/")[2]
+                        // // pathをStringとして保存
+                        // this.pathLocal = String(path)
+                        // // ファイル名を取得
+                        // let fileNameFull = this.pathLocal.split("/")[2]
+                        let fileNameFull = name
                         // 'download'は当リンクの内容をダウンロード
                         // fileNameFullはファイル名を設定
                         link.setAttribute('download', fileNameFull);
@@ -137,7 +147,7 @@ export default {
                     this.items = []
                     let counter = 0;
                     response.data.testData.forEach(item => {
-                        let itemSet = {"id": counter+1, "fileNo": item[0], "download": item[7], "name": item[1], "size": this.fileSizeUnit(item[2]), "date": item[3]+"/"+item[4]+"/"+item[5], "format": item[6], "path": item[7]}
+                        let itemSet = {"id": counter+1, "fileNo": item[0], "saveName": item[8], "name": item[1], "size": this.fileSizeUnit(item[2]), "date": item[3]+"/"+item[4]+"/"+item[5], "format": item[6], "path": item[7]}
                         this.items.push(itemSet);
                         counter++;
                     });
@@ -161,8 +171,10 @@ export default {
         <br/>
         <h1>ダウンロード機能</h1>
         <EasyDataTable :headers="headers" :items="items">
-            <template #item-do="{ path,fileNo }">
-                <button @click="download(path)">ダウンロード</button>
+            <!-- <template #item-do="{ path,fileNo }"> -->
+            <template #item-do="{ saveName,name,fileNo }">
+                <!-- <button @click="download(path)">ダウンロード</button> -->
+                <button @click="download(saveName, name)">ダウンロード</button>
                 <button @click="deleteFile(fileNo)">削除</button>
             </template>
         </EasyDataTable>

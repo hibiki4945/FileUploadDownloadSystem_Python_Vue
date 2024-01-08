@@ -148,14 +148,26 @@ def upload(file: UploadFile,clientName: str = Form(...)):
 
 # ファイルをダウンロード
 @app.post("/api/download")
-def download(s:Item):
-    
-    # ファイルパスとファイル名を取得
-    filePath = Path(str(s).split("'")[-2])
-    fileName = str(s).split("'")[-2].split(".")[0]
+def download(userName: str = Form(...), name: str = Form(...)):
 
-    # 当ファイルパスでファイルを読み取り、ファイル名とともに返す
+    print("userName: "+userName)
+    print("name: "+name)
+
+    # データベースと接続
+    con = sqlite3.connect("file_manage.db")
+    cur = con.cursor()
+
+    result = cur.execute(f"SELECT * FROM file WHERE FILE_NAME = '{name}' and SAVE_NAME LIKE '%{userName}'")
+    for  item  in  result.fetchall():
+        resultGet = item[7]
+        print(resultGet)
+    
+    filePath = Path(resultGet)
+    fileName = name
+
+    # # 当ファイルパスでファイルを読み取り、ファイル名とともに返す
     return FileResponse(filePath, filename=fileName, media_type='application/octet-stream')
+    # return
 
 # ファイルをダウンロード
 @app.post("/api/delete")
