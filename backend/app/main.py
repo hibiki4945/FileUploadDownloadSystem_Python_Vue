@@ -17,7 +17,7 @@ class Item(BaseModel):
 # データベースにある資料を検索
 @app.post("/api/serchAll")
 def searchAll():
-    print("search!")
+    # print("search!")
     # データベースと接続
     con = sqlite3.connect("file_manage.db")
     cur = con.cursor()
@@ -28,8 +28,8 @@ def searchAll():
         # print(item[6])
         file_path = Path(item[7])
         if(file_path.exists() is not True):
-            print("file_path?")
-            print("path: "+item[7])
+            # print("file_path?")
+            # print("path: "+item[7])
             cur.execute(f"DELETE FROM file WHERE FILE_NO = {item[0]}")
             con.commit()
 
@@ -37,7 +37,7 @@ def searchAll():
     resultReturn = []
     for  item  in  result.fetchall():
         resultReturn.append(item)
-        print("resultReturn!")
+        # print("resultReturn!")
     con.close()
 
     # 検索結果を返す
@@ -54,15 +54,14 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     con = sqlite3.connect("file_manage.db")
     cur = con.cursor()
 
+    # cur.execute("DROP TABLE file")
+
     DuplicateFile = cur.execute(f"""select count(*) from file f
                    where f.FILE_NAME ='{file.filename}' and
                          f.SAVE_NAME LIKE '%{clientName}';
                 """)
     for item in DuplicateFile:
         DuplicateFileNum = item[0]
-    print("DuplicateFile: ")
-    print(DuplicateFileNum)
-    print(DuplicateFileNum == 1)
     if(DuplicateFileNum == 1):
         return {'code': '400'}
 
@@ -74,7 +73,11 @@ def upload(file: UploadFile,clientName: str = Form(...)):
                 """)
     for item in clientNameNumOrigin:
         clientNameNum = item[0]
+        # print("clientNameNum: ")
+        # print(clientNameNum)
     current_dateTime = datetime.now()
+    # print("current_dateTime: ")
+    # print(current_dateTime)
     current_dateTime_fix = str('{:0>4d}'.format(current_dateTime.year)+'{:0>2d}'.format(current_dateTime.month)+'{:0>2d}'.format(current_dateTime.day))
     if(clientNameNum == 0):
         cur.execute(f"""
@@ -85,9 +88,14 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     result = cur.execute(f"SELECT * FROM client WHERE CLIENT_NAME = '{clientName}'")
     for  item  in  result.fetchall():
         clientNum = item[1]
+        print("clientNum: ")
+        print(clientNum)
     
+    # print("clientNum[:-6]: "+clientNum[:-6])
+    # print("current_dateTime_fix: "+current_dateTime_fix)
+    # print("clientNum[:-6] != current_dateTime_fix: "+clientNum[:-6] != current_dateTime_fix)
     # 1. 判斷clientNum是否為今天
-    if(clientNum[:-6] != current_dateTime_fix):
+    if(clientNum[:-6] == current_dateTime_fix):
         #    1. 為今天的情況(數字加1)
         clientNumTemp = int(clientNum[8:])
         clientNumTemp += 1
@@ -96,6 +104,13 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     else:
         #    2. 不為今天的情況(日期更新&計數改成"000001")
         clientNumNew = current_dateTime_fix+"000001"
+    # ?
+        cur.execute(f"""
+             UPDATE client
+                SET FILE_NAME_COUNTER = '{clientNumNew}'
+                    WHERE CLIENT_NAME = '{clientName}'
+        """)
+        con.commit()
 
     # 受け入れたファイルをbytesとして保存、ファイル名も保存
     fileBytes = file.file.read()
@@ -116,8 +131,6 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     fileUpdateDay = fileUpdateTime[2]
     fileType = fileName.split(".")[-1]
 
-    cur.execute("DROP TABLE file")
-    
     # テーブルを作る（もしなければ）
     cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NO integer primary key AUTOINCREMENT,FILE_NAME varchar(270),FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
     # cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
@@ -127,7 +140,7 @@ def upload(file: UploadFile,clientName: str = Form(...)):
         # 資料をテーブルに追加
         cur.execute(f"""
             INSERT INTO file VALUES
-                (0,'{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{clientNumNew}{clientName}.{fileType}', '{clientNumNew}{clientName}', 0);
+                (NULL,'{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{clientNumNew}{clientName}.{fileType}', '{clientNumNew}{clientName}', 0);
         """)
         # cur.execute(f"""
         #     INSERT INTO file VALUES
