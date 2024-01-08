@@ -92,7 +92,7 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     fout.close()
 
     # データベースに必要な資料を用意
-    path = Path('./database', clientNumNew+"."+fileName.split(".")[-1])
+    path = Path('./database', clientNumNew+clientName+"."+fileName.split(".")[-1])
     fileSize = path.stat().st_size
     # fileUpdateTime = time.localtime(path.stat().st_mtime)
     fileUpdateTimeOrigin = time.strftime("%Y-%m-%d",time.localtime(path.stat().st_mtime))
