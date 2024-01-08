@@ -47,11 +47,24 @@ def searchAll():
 @app.post("/api/upload")
 def upload(file: UploadFile,clientName: str = Form(...)):
 
-    print("clientName: "+clientName)
+    # print("clientName: "+clientName)
+    # print("fileName: "+file.filename)
     
     # データベースと接続
     con = sqlite3.connect("file_manage.db")
     cur = con.cursor()
+
+    DuplicateFile = cur.execute(f"""select count(*) from file f
+                   where f.FILE_NAME ='{file.filename}' and
+                         f.SAVE_NAME LIKE '%{clientName}';
+                """)
+    for item in DuplicateFile:
+        DuplicateFileNum = item[0]
+    print("DuplicateFile: ")
+    print(DuplicateFileNum)
+    print(DuplicateFileNum == 1)
+    if(DuplicateFileNum == 1):
+        return {'code': '400'}
 
     # cur.execute("DROP TABLE client")
     cur.execute("CREATE TABLE IF NOT EXISTS client(CLIENT_NAME varchar(3) primary key,FILE_NAME_COUNTER varchar(14))")

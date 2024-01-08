@@ -47,10 +47,16 @@ export default {
             // ファイルのアプロード
             axios.post('http://localhost:8000/api/upload',this.param,this.config)
             .then(response=>{
-                // メッセージを画面に表示
-                alert("アプロードしました");
-                
-                this.searchAll();
+                if(response.data.code === "200"){
+                    // メッセージを画面に表示
+                    alert("アプロードしました");
+                    
+                    this.searchAll();
+                }
+                else{
+                    alert("ファイル名が被った");
+
+                }
 
             })
         },
