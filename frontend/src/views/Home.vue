@@ -12,16 +12,11 @@ export default {
             config: {
                 headers:{'Content-Type':'multipart/form-data'}
             },
-
+            // ダウンロードに必要なデータ
             paramDownload: new FormData(),
-            // config: {
-            //     headers:{'Content-Type':'multipart/form-data'}
-            // },
-            // データベースの検索結果
-            // list: null,
             // ダウンロードしたファイルのパス
             pathLocal: "",
-            
+            // テーブルのタイトル
             headers: [
                 { text: "動作", value: "do" },
                 { text: "ファイル名", value: "name"},
@@ -30,9 +25,11 @@ export default {
                 { text: "ファイル形式", value: "format"},
                 { text: "ファイルパス", value: "path"},
             ],
-
+            // テーブルの内容
             items: [],
+            // テーブルの内容（削除したデータ）
             itemsTrashCan: [],
+            // ユーザー名
             clientName: "A01",
             
         }
@@ -41,11 +38,12 @@ export default {
         // ファイルのアプロード
         updateSend(){
             this.param.append('clientName','A01');
-            // console.log('clientName: '+this.param.get('clientName'));
+            // 未選択の場合の対処
             if(this.param.get('file') === null){
                 alert("ファイルを選択してください")
                 return;
             }
+            // ファイルが100MBを超える場合の対処
             if(this.param.get('file').size >= 100000000){ //100MB
                 alert("100MB以内のファイルを選択してください")
                 return;
@@ -61,7 +59,6 @@ export default {
                 }
                 else{
                     alert("ファイル名が被った");
-
                 }
 
             })
@@ -78,7 +75,6 @@ export default {
             this.paramDownload.append('userName',saveName.substring(14));
             this.paramDownload.append('name',name);
             // ファイルをダウンロード
-            // axios.post('http://localhost:8000/api/download',this.paramDownload,this.config,
             axios.post('http://localhost:8000/api/download',this.paramDownload,
                 {
                     responseType: 'blob', // apiからダウンロードしたファイルをBlobとして受け入れる
@@ -92,10 +88,7 @@ export default {
                         const link = document.createElement('a');
                         // リンク先は当ファイルと設定
                         link.href = url;
-                        // // pathをStringとして保存
-                        // this.pathLocal = String(path)
-                        // // ファイル名を取得
-                        // let fileNameFull = this.pathLocal.split("/")[2]
+                        // ファイル名を取得
                         let fileNameFull = name
                         // 'download'は当リンクの内容をダウンロード
                         // fileNameFullはファイル名を設定
@@ -118,48 +111,38 @@ export default {
             else
                 return Math.round(size/1000000000)+"TB"
         },
+        // ファイルを削除
         deleteFile(path){
-            // console.log("path? is "+path.type())
-            // console.log(path)
             let pathStr = path.toString()
-            // console.log(pathStr)
             
             // ファイルをダウンロード
             axios.post('http://localhost:8000/api/delete',
                 {s: pathStr},// ファイルパスを送る
-                {        
-                    responseType: 'blob', // apiからダウンロードしたファイルをBlobとして受け入れる
-                }
                 )
                 .then(response=>{
-                    // console.log(response.data.code)
-                  
                     this.searchAll();
                     this.searchAllTrashCan();
                 })
         },
+        // ファイルを永久削除
         deleteFilePermanently(path){
             let pathStr = path.toString()
             
             // ファイルをダウンロード
             axios.post('http://localhost:8000/api/deletePermanently',
                 {s: pathStr},// ファイルパスを送る
-                // {        
-                //     responseType: 'blob', // apiからダウンロードしたファイルをBlobとして受け入れる
-                // }
                 )
                 .then(response=>{
                     this.searchAll();
                     this.searchAllTrashCan();
                 })
         },
+        // データベースにある資料を検索
         searchAll(){
             // 最初にデータベースにある資料を検索
             axios.post('http://localhost:8000/api/serchAll')
                 .then(response=>{
-                    // データベースの検索結果を更新
-                    // this.list = response.data.testData;
-
+                    // 検索結果を更新
                     this.items = []
                     let counter = 0;
                     response.data.testData.forEach(item => {
@@ -169,14 +152,12 @@ export default {
                     });
                 })
         },
+        // データベースにある資料を検索（削除したデータ）
         searchAllTrashCan(){
             // 最初にデータベースにある資料を検索
             axios.post('http://localhost:8000/api/serchAllTrashCan')
-            // axios.post('http://localhost:8000/api/serchAll')
                 .then(response=>{
-                    // データベースの検索結果を更新
-                    // this.list = response.data.testData;
-
+                    // 検索結果を更新
                     this.itemsTrashCan = []
                     let counter = 0;
                     response.data.testData.forEach(item => {

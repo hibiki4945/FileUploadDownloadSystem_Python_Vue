@@ -17,7 +17,6 @@ class Item(BaseModel):
 # データベースにある資料を検索
 @app.post("/api/serchAll")
 def searchAll():
-    # print("search!")
     # データベースと接続
     con = sqlite3.connect("file_manage.db")
     cur = con.cursor()
@@ -25,19 +24,18 @@ def searchAll():
     # 全ての資料を検索（ret1で検索結果を記録）
     result = cur.execute("SELECT * FROM file")
     for  item  in  result.fetchall():
-        # print(item[6])
         file_path = Path(item[7])
+        # ファイルがファイルパスにない場合、データベースにある資料を削除
         if(file_path.exists() is not True):
-            # print("file_path?")
-            # print("path: "+item[7])
             cur.execute(f"DELETE FROM file WHERE FILE_NO = {item[0]}")
             con.commit()
 
+    # 削除してないデータを検索
     result = cur.execute("SELECT * FROM file WHERE DEL_FLG = 0")
     resultReturn = []
+    # 検索結果を取り出す
     for  item  in  result.fetchall():
         resultReturn.append(item)
-        # print("resultReturn!")
     con.close()
 
     # 検索結果を返す
@@ -45,7 +43,6 @@ def searchAll():
 
 @app.post("/api/serchAllTrashCan")
 def serchAllTrashCan():
-    # print("search!")
     # データベースと接続
     con = sqlite3.connect("file_manage.db")
     cur = con.cursor()
@@ -54,12 +51,14 @@ def serchAllTrashCan():
     result = cur.execute("SELECT * FROM file")
     for  item  in  result.fetchall():
         file_path = Path(item[7])
+        # ファイルがファイルパスにない場合、データベースにある資料を削除
         if(file_path.exists() is not True):
             cur.execute(f"DELETE FROM file WHERE FILE_NO = {item[0]}")
             con.commit()
 
     result = cur.execute("SELECT * FROM file WHERE DEL_FLG = 1")
     resultReturn = []
+    # 検索結果を取り出す
     for  item  in  result.fetchall():
         resultReturn.append(item)
     con.close()
@@ -71,15 +70,11 @@ def serchAllTrashCan():
 @app.post("/api/upload")
 def upload(file: UploadFile,clientName: str = Form(...)):
 
-    # print("clientName: "+clientName)
-    # print("fileName: "+file.filename)
-    
     # データベースと接続
     con = sqlite3.connect("file_manage.db")
     cur = con.cursor()
 
-    # cur.execute("DROP TABLE file")
-
+    # ファイル名が既にデータベース存在している資料を検索（その数だけ）
     DuplicateFile = cur.execute(f"""select count(*) from file f
                    where f.FILE_NAME ='{file.filename}' and
                          f.SAVE_NAME LIKE '%{clientName}';
@@ -89,46 +84,39 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     if(DuplicateFileNum == 1):
         return {'code': '400'}
 
-    # cur.execute("DROP TABLE client")
+    # クライアントのファイル名のカウンター用のテーブルを作成
     cur.execute("CREATE TABLE IF NOT EXISTS client(CLIENT_NAME varchar(3) primary key,FILE_NAME_COUNTER varchar(14))")
-    
+    # 当ユーザーのファイル名のカウンターを検索（その数だけ）
     clientNameNumOrigin = cur.execute(f"""select count(*) from client
                    where client.CLIENT_NAME ='{clientName}';
                 """)
     for item in clientNameNumOrigin:
         clientNameNum = item[0]
-        # print("clientNameNum: ")
-        # print(clientNameNum)
+    # 今の時間を取得
     current_dateTime = datetime.now()
-    # print("current_dateTime: ")
-    # print(current_dateTime)
     current_dateTime_fix = str('{:0>4d}'.format(current_dateTime.year)+'{:0>2d}'.format(current_dateTime.month)+'{:0>2d}'.format(current_dateTime.day))
+    # 当ユーザーのファイル名のカウンターが存在しない場合、作る
     if(clientNameNum == 0):
         cur.execute(f"""
             INSERT INTO client VALUES
                 ('{clientName}', '{current_dateTime_fix}000000');
         """)
         con.commit()
+    # 当ユーザーのファイル名のカウンターを検索
     result = cur.execute(f"SELECT * FROM client WHERE CLIENT_NAME = '{clientName}'")
     for  item  in  result.fetchall():
         clientNum = item[1]
-        # print("clientNum: ")
-        # print(clientNum)
     
-    # print("clientNum[:-6]: "+clientNum[:-6])
-    # print("current_dateTime_fix: "+current_dateTime_fix)
-    # print("clientNum[:-6] != current_dateTime_fix: "+clientNum[:-6] != current_dateTime_fix)
-    # 1. 判斷clientNum是否為今天
+    # clientNumが今日の場合、カウンターをプラス1とする
     if(clientNum[:-6] == current_dateTime_fix):
-        #    1. 為今天的情況(數字加1)
         clientNumTemp = int(clientNum[8:])
         clientNumTemp += 1
         clientNumTempStr = str('{:0>6d}'.format(clientNumTemp))
         clientNumNew = clientNum[:-6]+clientNumTempStr
     else:
-        #    2. 不為今天的情況(日期更新&計數改成"000001")
+        # clientNumが今日ではない場合、カウンターを1に戻す
         clientNumNew = current_dateTime_fix+"000001"
-    # ?
+    # 更新したclientNumをデータベースに保存
     cur.execute(f"""
             UPDATE client
             SET FILE_NAME_COUNTER = '{clientNumNew}'
@@ -147,7 +135,6 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     # データベースに必要な資料を用意
     path = Path('./database', clientNumNew+clientName+"."+fileName.split(".")[-1])
     fileSize = path.stat().st_size
-    # fileUpdateTime = time.localtime(path.stat().st_mtime)
     fileUpdateTimeOrigin = time.strftime("%Y-%m-%d",time.localtime(path.stat().st_mtime))
     fileUpdateTime = fileUpdateTimeOrigin.split("-")
     fileUpdateYear = fileUpdateTime[0]
@@ -157,8 +144,6 @@ def upload(file: UploadFile,clientName: str = Form(...)):
 
     # テーブルを作る（もしなければ）
     cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NO integer primary key AUTOINCREMENT,FILE_NAME varchar(270),FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
-    # cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
-    # cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NAME varchar(270) primary key,FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),DEL_FLG INTEGER DEFAULT 0)")
     
     # 資料をテーブルに追加
     cur.execute(f"""
@@ -174,37 +159,31 @@ def upload(file: UploadFile,clientName: str = Form(...)):
 @app.post("/api/download")
 def download(userName: str = Form(...), name: str = Form(...)):
 
-    print("userName: "+userName)
-    print("name: "+name)
-
     # データベースと接続
     con = sqlite3.connect("file_manage.db")
     cur = con.cursor()
 
+    # ファイル名とユーザーナンバーで検索
     result = cur.execute(f"SELECT * FROM file WHERE FILE_NAME = '{name}' and SAVE_NAME LIKE '%{userName}'")
     for  item  in  result.fetchall():
         resultGet = item[7]
-        print(resultGet)
     
     filePath = Path(resultGet)
     fileName = name
 
     # # 当ファイルパスでファイルを読み取り、ファイル名とともに返す
     return FileResponse(filePath, filename=fileName, media_type='application/octet-stream')
-    # return
 
 # ファイルをダウンロード
 @app.post("/api/delete")
 def delete(s:Item):
-    # print("delete!")
-    # print(s)
+    
     fileNo = str(s).split("'")[-2]
-    # print("fileNo: "+fileNo)
-    # fileName = str(s).split("'")[-2].split("/")[-1]
 
     # データベースと接続
     con = sqlite3.connect("file_manage.db")
     cur = con.cursor()
+    # 削除（DEL_FLGを1とする）
     cur.execute(f"""
              UPDATE file
                 SET DEL_FLG = 1
@@ -224,11 +203,12 @@ def deletePermanently(s:Item):
     con = sqlite3.connect("file_manage.db")
     cur = con.cursor()
 
+    # 当ファイルのデータベースにある資料を取得、ファイルパスで削除
     result = cur.execute(f"SELECT * FROM file WHERE FILE_NO = '{fileNo}'")
     for  item  in  result.fetchall():
         file = Path(item[7])
         file.unlink()
-
+    
     # 成功メッセージを返す
     return {'code': '200'}
 
