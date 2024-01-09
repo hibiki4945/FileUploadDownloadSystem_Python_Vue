@@ -43,6 +43,30 @@ def searchAll():
     # 検索結果を返す
     return {'code': '200', 'testData': resultReturn}
 
+@app.post("/api/serchAllTrashCan")
+def serchAllTrashCan():
+    # print("search!")
+    # データベースと接続
+    con = sqlite3.connect("file_manage.db")
+    cur = con.cursor()
+
+    # 全ての資料を検索（ret1で検索結果を記録）
+    result = cur.execute("SELECT * FROM file")
+    for  item  in  result.fetchall():
+        file_path = Path(item[7])
+        if(file_path.exists() is not True):
+            cur.execute(f"DELETE FROM file WHERE FILE_NO = {item[0]}")
+            con.commit()
+
+    result = cur.execute("SELECT * FROM file WHERE DEL_FLG = 1")
+    resultReturn = []
+    for  item  in  result.fetchall():
+        resultReturn.append(item)
+    con.close()
+
+    # 検索結果を返す
+    return {'code': '200', 'testData': resultReturn}
+
 # ファイルをアプロード
 @app.post("/api/upload")
 def upload(file: UploadFile,clientName: str = Form(...)):
@@ -88,8 +112,8 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     result = cur.execute(f"SELECT * FROM client WHERE CLIENT_NAME = '{clientName}'")
     for  item  in  result.fetchall():
         clientNum = item[1]
-        print("clientNum: ")
-        print(clientNum)
+        # print("clientNum: ")
+        # print(clientNum)
     
     # print("clientNum[:-6]: "+clientNum[:-6])
     # print("current_dateTime_fix: "+current_dateTime_fix)
@@ -187,6 +211,23 @@ def delete(s:Item):
                     WHERE FILE_NO = {fileNo}
         """)
     con.commit()
+
+    # 成功メッセージを返す
+    return {'code': '200'}
+
+@app.post("/api/deletePermanently")
+def deletePermanently(s:Item):
+
+    fileNo = str(s).split("'")[-2]
+
+    # データベースと接続
+    con = sqlite3.connect("file_manage.db")
+    cur = con.cursor()
+
+    result = cur.execute(f"SELECT * FROM file WHERE FILE_NO = '{fileNo}'")
+    for  item  in  result.fetchall():
+        file = Path(item[7])
+        file.unlink()
 
     # 成功メッセージを返す
     return {'code': '200'}
