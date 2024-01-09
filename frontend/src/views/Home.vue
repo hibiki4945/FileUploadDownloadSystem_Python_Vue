@@ -32,6 +32,7 @@ export default {
             ],
 
             items: [],
+            itemsTrashCan: [],
             clientName: "A01",
             
         }
@@ -72,7 +73,6 @@ export default {
             this.param.append('file',file);
         },
         // ファイルをダウンロード
-        // download(path){
         download(saveName, name){
             
             this.paramDownload.append('userName',saveName.substring(14));
@@ -135,6 +135,22 @@ export default {
                     // console.log(response.data.code)
                   
                     this.searchAll();
+                    this.searchAllTrashCan();
+                })
+        },
+        deleteFilePermanently(path){
+            let pathStr = path.toString()
+            
+            // ファイルをダウンロード
+            axios.post('http://localhost:8000/api/deletePermanently',
+                {s: pathStr},// ファイルパスを送る
+                // {        
+                //     responseType: 'blob', // apiからダウンロードしたファイルをBlobとして受け入れる
+                // }
+                )
+                .then(response=>{
+                    this.searchAll();
+                    this.searchAllTrashCan();
                 })
         },
         searchAll(){
@@ -152,11 +168,29 @@ export default {
                         counter++;
                     });
                 })
+        },
+        searchAllTrashCan(){
+            // 最初にデータベースにある資料を検索
+            axios.post('http://localhost:8000/api/serchAllTrashCan')
+            // axios.post('http://localhost:8000/api/serchAll')
+                .then(response=>{
+                    // データベースの検索結果を更新
+                    // this.list = response.data.testData;
+
+                    this.itemsTrashCan = []
+                    let counter = 0;
+                    response.data.testData.forEach(item => {
+                        let itemSet = {"id": counter+1, "fileNo": item[0], "saveName": item[8], "name": item[1], "size": this.fileSizeUnit(item[2]), "date": item[3]+"/"+item[4]+"/"+item[5], "format": item[6], "path": item[7]}
+                        this.itemsTrashCan.push(itemSet);
+                        counter++;
+                    });
+                })
         }
 
     },
     mounted() {
         this.searchAll();
+        this.searchAllTrashCan();
     },
 
 }
@@ -171,13 +205,20 @@ export default {
         <br/>
         <h1>ダウンロード機能</h1>
         <EasyDataTable :headers="headers" :items="items">
-            <!-- <template #item-do="{ path,fileNo }"> -->
             <template #item-do="{ saveName,name,fileNo }">
-                <!-- <button @click="download(path)">ダウンロード</button> -->
                 <button @click="download(saveName, name)">ダウンロード</button>
                 <button @click="deleteFile(fileNo)">削除</button>
             </template>
         </EasyDataTable>
+        <hr/>
+        <br/>
+        <h1>ゴミ箱</h1>
+        <EasyDataTable :headers="headers" :items="itemsTrashCan">
+            <template #item-do="{ fileNo }">
+                <button @click="deleteFilePermanently(fileNo)">完全削除</button>
+            </template>
+        </EasyDataTable>
+
     </div>
 </template>
   
