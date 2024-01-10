@@ -31,7 +31,14 @@ export default {
             itemsTrashCan: [],
             // ユーザー名
             clientName: "A01",
+
+            filePath: "(從資料庫(做搜尋(絕對路徑)))",
+
+            filePathNew: "",
             
+            // ダウンロードに必要なデータ
+            paramFilePath: new FormData(),
+
         }
     },
     methods: {
@@ -166,10 +173,32 @@ export default {
                         counter++;
                     });
                 })
-        }
+        },
+
+        searchFilePath(){
+            // 最初にデータベースにある資料を検索
+            axios.post('http://localhost:8000/api/searchFilePath')
+                .then(response=>{
+                    // console.log("searchFilePath!")
+                    // console.log("response.data.path: "+response.data.path)
+                    this.filePath = response.data.path
+                })
+        },
+
+        filePathUpdate(){
+            this.paramFilePath.append('path',this.filePathNew);
+            axios.post('http://localhost:8000/api/updateFilePath',this.paramFilePath)
+                .then(response=>{
+                    // this.filePath = response.data.path
+                    this.filePathNew = ''
+                    this.searchFilePath();
+                    alert("パスの変更は成功しました")
+                })
+        },
 
     },
     mounted() {
+        this.searchFilePath();
         this.searchAll();
         this.searchAllTrashCan();
     },
@@ -179,6 +208,12 @@ export default {
 </script>
 <template>
     <div>
+        <h1>ファイルパスを設定</h1>
+        <input type="text" v-model="filePathNew">
+        <button type="button" @click="filePathUpdate">更新</button>
+        <p>今のファイルパス : {{ filePath }}</p>
+        <hr/>
+        <br/>
         <h1>アプロード機能</h1>
         <button type="submit" @click="updateSend">アプロード</button>
         <input name="file" type="file" @change="update"/>

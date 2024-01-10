@@ -66,6 +66,44 @@ def serchAllTrashCan():
     # 検索結果を返す
     return {'code': '200', 'testData': resultReturn}
 
+@app.post("/api/searchFilePath")
+def searchFilePath():
+    # データベースと接続
+    con = sqlite3.connect("file_manage.db")
+    cur = con.cursor()
+
+    cur.execute("CREATE TABLE IF NOT EXISTS filePath(FILE_PATH_NO int primary key,FILE_PATH varchar(270))")
+
+    # 全ての資料を検索（ret1で検索結果を記録）
+    result = cur.execute("SELECT count(*) FROM filePath where FILE_PATH_NO = 1")
+    for  item  in  result.fetchall():
+        if(item[0] == 0):
+            cur.execute("INSERT INTO filePath VALUES (1, '');")
+            con.commit()
+
+    result = cur.execute("SELECT * FROM filePath where FILE_PATH_NO = 1")
+    for  item  in  result.fetchall():
+        resultReturn = item[1]
+
+    # 検索結果を返す
+    return {'code': '200', 'path': resultReturn}
+
+@app.post("/api/updateFilePath")
+def updateFilePath(path: str = Form(...)):
+    # データベースと接続
+    con = sqlite3.connect("file_manage.db")
+    cur = con.cursor()
+
+    cur.execute(f"""
+        UPDATE filePath
+        SET FILE_PATH = '{path}'
+            WHERE FILE_PATH_NO = 1
+    """)
+    con.commit()
+
+    # 検索結果を返す
+    return {'code': '200'}
+
 # ファイルをアプロード
 @app.post("/api/upload")
 def upload(file: UploadFile,clientName: str = Form(...)):
