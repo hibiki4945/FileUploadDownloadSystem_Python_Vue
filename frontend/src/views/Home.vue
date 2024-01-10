@@ -31,9 +31,9 @@ export default {
             itemsTrashCan: [],
             // ユーザー名
             clientName: "A01",
-
-            filePath: "(從資料庫(做搜尋(絕對路徑)))",
-
+            // ファイルパス
+            filePath: "",
+            // ファイルパス（更新）
             filePathNew: "",
             
             // ダウンロードに必要なデータ
@@ -124,7 +124,7 @@ export default {
             
             // ファイルをダウンロード
             axios.post('http://localhost:8000/api/delete',
-                {s: pathStr},// ファイルパスを送る
+                {pathStr: pathStr},// ファイルパスを送る
                 )
                 .then(response=>{
                     this.searchAll();
@@ -137,7 +137,7 @@ export default {
             
             // ファイルをダウンロード
             axios.post('http://localhost:8000/api/deletePermanently',
-                {s: pathStr},// ファイルパスを送る
+                {pathStr: pathStr},// ファイルパスを送る
                 )
                 .then(response=>{
                     this.searchAll();
@@ -152,7 +152,7 @@ export default {
                     // 検索結果を更新
                     this.items = []
                     let counter = 0;
-                    response.data.testData.forEach(item => {
+                    response.data.resultReturn.forEach(item => {
                         let itemSet = {"id": counter+1, "fileNo": item[0], "saveName": item[8], "name": item[1], "size": this.fileSizeUnit(item[2]), "date": item[3]+"/"+item[4]+"/"+item[5], "format": item[6], "path": item[7]}
                         this.items.push(itemSet);
                         counter++;
@@ -167,7 +167,7 @@ export default {
                     // 検索結果を更新
                     this.itemsTrashCan = []
                     let counter = 0;
-                    response.data.testData.forEach(item => {
+                    response.data.resultReturn.forEach(item => {
                         let itemSet = {"id": counter+1, "fileNo": item[0], "saveName": item[8], "name": item[1], "size": this.fileSizeUnit(item[2]), "date": item[3]+"/"+item[4]+"/"+item[5], "format": item[6], "path": item[7]}
                         this.itemsTrashCan.push(itemSet);
                         counter++;
@@ -179,8 +179,6 @@ export default {
             // 最初にデータベースにある資料を検索
             axios.post('http://localhost:8000/api/searchFilePath')
                 .then(response=>{
-                    // console.log("searchFilePath!")
-                    // console.log("response.data.path: "+response.data.path)
                     this.filePath = response.data.path
                 })
         },
@@ -189,7 +187,6 @@ export default {
             this.paramFilePath.append('path',this.filePathNew);
             axios.post('http://localhost:8000/api/updateFilePath',this.paramFilePath)
                 .then(response=>{
-                    // this.filePath = response.data.path
                     this.filePathNew = ''
                     this.searchFilePath();
                     alert("パスの変更は成功しました")
