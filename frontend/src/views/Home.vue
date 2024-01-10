@@ -220,7 +220,11 @@ export default {
         <EasyDataTable :headers="headers" :items="items">
             <template #item-do="{ saveName,name,fileNo }">
                 <button @click="download(saveName, name)">ダウンロード</button>
+                <br/>
                 <button @click="deleteFile(fileNo)">削除</button>
+            </template>
+            <template #item-path="{ path }">
+                <p class="pathShow">{{ path }}</p>
             </template>
         </EasyDataTable>
         <hr/>
@@ -230,8 +234,17 @@ export default {
             <template #item-do="{ fileNo }">
                 <button @click="deleteFilePermanently(fileNo)">完全削除</button>
             </template>
+            <template #item-path="{ path }">
+                <p class="pathShow">{{ path }}</p>
+            </template>
         </EasyDataTable>
 
     </div>
 </template>
+<style>
+.pathShow{
+    width: 200px;
+    overflow-x: scroll;
+}
+</style>
   
