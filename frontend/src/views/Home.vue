@@ -31,7 +31,14 @@ export default {
             itemsTrashCan: [],
             // ユーザー名
             clientName: "A01",
+            // ファイルパス
+            filePath: "",
+            // ファイルパス（更新）
+            filePathNew: "",
             
+            // ダウンロードに必要なデータ
+            paramFilePath: new FormData(),
+
         }
     },
     methods: {
@@ -117,7 +124,7 @@ export default {
             
             // ファイルをダウンロード
             axios.post('http://localhost:8000/api/delete',
-                {s: pathStr},// ファイルパスを送る
+                {pathStr: pathStr},// ファイルパスを送る
                 )
                 .then(response=>{
                     this.searchAll();
@@ -130,7 +137,7 @@ export default {
             
             // ファイルをダウンロード
             axios.post('http://localhost:8000/api/deletePermanently',
-                {s: pathStr},// ファイルパスを送る
+                {pathStr: pathStr},// ファイルパスを送る
                 )
                 .then(response=>{
                     this.searchAll();
@@ -145,7 +152,7 @@ export default {
                     // 検索結果を更新
                     this.items = []
                     let counter = 0;
-                    response.data.testData.forEach(item => {
+                    response.data.resultReturn.forEach(item => {
                         let itemSet = {"id": counter+1, "fileNo": item[0], "saveName": item[8], "name": item[1], "size": this.fileSizeUnit(item[2]), "date": item[3]+"/"+item[4]+"/"+item[5], "format": item[6], "path": item[7]}
                         this.items.push(itemSet);
                         counter++;
@@ -160,16 +167,46 @@ export default {
                     // 検索結果を更新
                     this.itemsTrashCan = []
                     let counter = 0;
-                    response.data.testData.forEach(item => {
+                    response.data.resultReturn.forEach(item => {
                         let itemSet = {"id": counter+1, "fileNo": item[0], "saveName": item[8], "name": item[1], "size": this.fileSizeUnit(item[2]), "date": item[3]+"/"+item[4]+"/"+item[5], "format": item[6], "path": item[7]}
                         this.itemsTrashCan.push(itemSet);
                         counter++;
                     });
                 })
-        }
+        },
+
+        searchFilePath(){
+            // 最初にデータベースにある資料を検索
+            axios.post('http://localhost:8000/api/searchFilePath')
+                .then(response=>{
+                    this.filePath = response.data.path
+                })
+        },
+
+        filePathUpdate(){
+            // パスの入力かをチェック
+            if(this.filePathNew.length === 0){
+                alert("パスを入力してください")
+                return
+            }
+
+            this.paramFilePath.append('path',this.filePathNew);
+            axios.post('http://localhost:8000/api/updateFilePath',this.paramFilePath)
+                .then(response=>{
+                    if(response.data.code === "200"){
+                        this.filePathNew = ''
+                        this.searchFilePath();
+                        alert("パスの変更は成功しました")
+                    }
+                    else{
+                        alert("パスは存在しません")
+                    }
+                })
+        },
 
     },
     mounted() {
+        this.searchFilePath();
         this.searchAll();
         this.searchAllTrashCan();
     },
@@ -179,6 +216,12 @@ export default {
 </script>
 <template>
     <div>
+        <h1>ファイルパスを設定</h1>
+        <input type="text" v-model="filePathNew">
+        <button type="button" @click="filePathUpdate">更新</button>
+        <p>今のファイルパス : {{ filePath }}</p>
+        <hr/>
+        <br/>
         <h1>アプロード機能</h1>
         <button type="submit" @click="updateSend">アプロード</button>
         <input name="file" type="file" @change="update"/>
@@ -188,7 +231,11 @@ export default {
         <EasyDataTable :headers="headers" :items="items">
             <template #item-do="{ saveName,name,fileNo }">
                 <button @click="download(saveName, name)">ダウンロード</button>
+                <br/>
                 <button @click="deleteFile(fileNo)">削除</button>
+            </template>
+            <template #item-path="{ path }">
+                <p class="pathShow">{{ path }}</p>
             </template>
         </EasyDataTable>
         <hr/>
@@ -198,8 +245,17 @@ export default {
             <template #item-do="{ fileNo }">
                 <button @click="deleteFilePermanently(fileNo)">完全削除</button>
             </template>
+            <template #item-path="{ path }">
+                <p class="pathShow">{{ path }}</p>
+            </template>
         </EasyDataTable>
 
     </div>
 </template>
+<style>
+.pathShow{
+    width: 200px;
+    overflow-x: scroll;
+}
+</style>
   
