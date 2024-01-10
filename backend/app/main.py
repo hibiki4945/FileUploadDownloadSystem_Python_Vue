@@ -94,6 +94,11 @@ def updateFilePath(path: str = Form(...)):
     sqlConnect= sqlite3.connect("file_manage.db")
     sqlCursor= sqlConnect.cursor()
 
+    folder_path = Path(path)
+    if not folder_path.exists():
+        print('folder no exist!')
+        return {'code': '400'}
+
     sqlCursor.execute(f"""
         UPDATE filePath
         SET FILE_PATH = '{path}'

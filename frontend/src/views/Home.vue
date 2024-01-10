@@ -184,12 +184,23 @@ export default {
         },
 
         filePathUpdate(){
+            // パスの入力かをチェック
+            if(this.filePathNew.length === 0){
+                alert("パスを入力してください")
+                return
+            }
+
             this.paramFilePath.append('path',this.filePathNew);
             axios.post('http://localhost:8000/api/updateFilePath',this.paramFilePath)
                 .then(response=>{
-                    this.filePathNew = ''
-                    this.searchFilePath();
-                    alert("パスの変更は成功しました")
+                    if(response.data.code === "200"){
+                        this.filePathNew = ''
+                        this.searchFilePath();
+                        alert("パスの変更は成功しました")
+                    }
+                    else{
+                        alert("パスは存在しません")
+                    }
                 })
         },
 
