@@ -166,12 +166,21 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     fileBytes = file.file.read()
     fileName = file.filename
     # 指定されたパスで当ファイルをアーカイブ
-    fout = open("./database/"+clientNumNew+clientName+"."+fileName.split(".")[-1], 'wb')
+    # fout = open("./database/"+clientNumNew+clientName+"."+fileName.split(".")[-1], 'wb')
+    
+    result = cur.execute("SELECT * FROM filePath where FILE_PATH_NO = 1")
+    for  item  in  result.fetchall():
+        pathSearch = item[1]
+    fout = open(pathSearch+"/"+clientNumNew+clientName+"."+fileName.split(".")[-1], 'wb')
     fout.write(fileBytes)
     fout.close()
 
     # データベースに必要な資料を用意
-    path = Path('./database', clientNumNew+clientName+"."+fileName.split(".")[-1])
+    
+    result = cur.execute("SELECT * FROM filePath where FILE_PATH_NO = 1")
+    for  item  in  result.fetchall():
+        pathSearch = item[1]
+    path = Path(pathSearch+"/"+clientNumNew+clientName+"."+fileName.split(".")[-1])
     fileSize = path.stat().st_size
     fileUpdateTimeOrigin = time.strftime("%Y-%m-%d",time.localtime(path.stat().st_mtime))
     fileUpdateTime = fileUpdateTimeOrigin.split("-")
@@ -183,10 +192,13 @@ def upload(file: UploadFile,clientName: str = Form(...)):
     # テーブルを作る（もしなければ）
     cur.execute("CREATE TABLE IF NOT EXISTS file(FILE_NO integer primary key AUTOINCREMENT,FILE_NAME varchar(270),FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
     
+    result = cur.execute("SELECT * FROM filePath where FILE_PATH_NO = 1")
+    for  item  in  result.fetchall():
+        pathSearch = item[1]
     # 資料をテーブルに追加
     cur.execute(f"""
         INSERT INTO file VALUES
-            (NULL,'{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', './database/{clientNumNew}{clientName}.{fileType}', '{clientNumNew}{clientName}', 0);
+            (NULL,'{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', '{pathSearch}\{clientNumNew}{clientName}.{fileType}', '{clientNumNew}{clientName}', 0);
     """)
     con.commit()
 
