@@ -240,6 +240,26 @@ def delete(pathStr:Item):
     # 成功メッセージを返す
     return {'code': '200'}
 
+# ファイルをダウンロード
+@app.post("/api/cancelDelete")
+def cancelDelete(pathStr:Item):
+    
+    fileNo = str(pathStr).split("'")[-2]
+
+    # データベースと接続
+    sqlConnect= sqlite3.connect("file_manage.db")
+    sqlCursor= sqlConnect.cursor()
+    # 削除（DEL_FLGを1とする）
+    sqlCursor.execute(f"""
+             UPDATE file
+                SET DEL_FLG = 0
+                    WHERE FILE_NO = {fileNo}
+        """)
+    sqlConnect.commit()
+
+    # 成功メッセージを返す
+    return {'code': '200'}
+
 @app.post("/api/deletePermanently")
 def deletePermanently(pathStr:Item):
 
