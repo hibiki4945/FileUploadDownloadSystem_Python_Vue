@@ -132,6 +132,19 @@ export default {
                 })
         },
         // ファイルを永久削除
+        cancelDeleteFile(path){
+            let pathStr = path.toString()
+            
+            // ファイルをダウンロード
+            axios.post('http://localhost:8000/api/cancelDelete',
+                {pathStr: pathStr},// ファイルパスを送る
+                )
+                .then(response=>{
+                    this.searchAll();
+                    this.searchAllTrashCan();
+                })
+        },
+        // ファイルを永久削除
         deleteFilePermanently(path){
             let pathStr = path.toString()
             
@@ -224,7 +237,7 @@ export default {
         <br/>
         <h1>アプロード機能</h1>
         <button type="submit" @click="updateSend">アプロード</button>
-        <input name="file" type="file" @change="update"/>
+        <input name="file" type="file" @change="update" />
         <hr/>
         <br/>
         <h1>ダウンロード機能</h1>
@@ -243,6 +256,8 @@ export default {
         <h1>ゴミ箱</h1>
         <EasyDataTable :headers="headers" :items="itemsTrashCan">
             <template #item-do="{ fileNo }">
+                <button @click="cancelDeleteFile(fileNo)">データ復旧</button>
+                <br/>
                 <button @click="deleteFilePermanently(fileNo)">完全削除</button>
             </template>
             <template #item-path="{ path }">
