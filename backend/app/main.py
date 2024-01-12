@@ -1,8 +1,11 @@
 from pathlib import Path
 from typing import List
 from fastapi import  FastAPI, File, UploadFile, Form
+from fastapi.responses import StreamingResponse
 from starlette.responses import FileResponse
 from pydantic import BaseModel
+from io import BytesIO
+from zipfile import ZipFile
 
 import time
 import sqlite3
@@ -228,6 +231,42 @@ def download(userName: str = Form(...), name: str = Form(...)):
 
     # # 当ファイルパスでファイルを読み取り、ファイル名とともに返す
     return FileResponse(filePath, filename=fileName, media_type='application/octet-stream')
+
+# ファイルをダウンロード
+@app.post("/api/multipleDownload")
+def multipleDownload(userNameList: List[str] = Form(...), nameList: List[str] = Form(...)):
+
+    # ファイルパスとファイル名を保存用
+    files = []
+    # 各ファイルのファイルパスとファイル名を保存
+    for item in nameList:
+        userName = userNameList[0]
+        name = item
+
+        # データベースと接続
+        sqlConnect= sqlite3.connect("file_manage.db")
+        sqlCursor= sqlConnect.cursor()
+
+        # ファイル名とユーザーナンバーで検索
+        fileSearchResult = sqlCursor.execute(f"SELECT * FROM file WHERE FILE_NAME = '{name}' and SAVE_NAME LIKE '%{userName}'")
+        for  item  in  fileSearchResult.fetchall():
+            resultGet = item[7]
+        # ファイルパスとファイル名を保存
+        filePath = Path(resultGet)
+        fileName = name
+        files.append((filePath, fileName))
+
+    # 各ファイルをまとめて、Bytesとしてzipに入れる
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, "w") as zip_archive:
+        for file_path, file_name in files:
+            zip_archive.write(file_path, arcname=file_name)
+
+    # BytesIOを初期化
+    zip_buffer.seek(0)
+
+    # StreamingResponseで生成したzipを返す
+    return StreamingResponse(zip_buffer, media_type="application/zip", headers={"Content-Disposition": "attachment; filename=download.zip"})
 
 # ファイルをダウンロード
 @app.post("/api/delete")
