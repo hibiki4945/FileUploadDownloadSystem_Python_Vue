@@ -1,5 +1,6 @@
 from pathlib import Path
-from fastapi import  FastAPI, UploadFile, Form
+from typing import List
+from fastapi import  FastAPI, File, UploadFile, Form
 from starlette.responses import FileResponse
 from pydantic import BaseModel
 
@@ -111,92 +112,100 @@ def updateFilePath(path: str = Form(...)):
 
 # ファイルをアプロード
 @app.post("/api/upload")
-def upload(file: UploadFile,clientName: str = Form(...)):
+# def upload(files: List[UploadFile],clientName: str = Form(...)):
+def upload(files: List[UploadFile] = File(...),clientName: str = Form(...)):
+# def upload(files: UploadFile,clientName: str = Form(...)):
+
+    print("upload!")
 
     # データベースと接続
     sqlConnect= sqlite3.connect("file_manage.db")
     sqlCursor= sqlConnect.cursor()
 
-    # ファイル名が既にデータベース存在している資料を検索（その数だけ）
-    DuplicateFile = sqlCursor.execute(f"""select count(*) from file f
-                   where f.FILE_NAME ='{file.filename}' and
-                         f.SAVE_NAME LIKE '%{clientName}';
-                """)
-    for item in DuplicateFile:
-        DuplicateFileNum = item[0]
-    if(DuplicateFileNum == 1):
-        return {'code': '400'}
+    for file in files:
+        # print("file!")
+        # print("file.filename: "+file.filename)
 
-    # クライアントのファイル名のカウンター用のテーブルを作成
-    sqlCursor.execute("CREATE TABLE IF NOT EXISTS client(CLIENT_NAME varchar(3) primary key,FILE_NAME_COUNTER varchar(14))")
-    # 当ユーザーのファイル名のカウンターを検索（その数だけ）
-    clientNameNumOrigin = sqlCursor.execute(f"""select count(*) from client
-                   where client.CLIENT_NAME ='{clientName}';
-                """)
-    for item in clientNameNumOrigin:
-        clientNameNum = item[0]
-    # 今の時間を取得
-    current_dateTime = datetime.now()
-    current_dateTime_fix = str('{:0>4d}'.format(current_dateTime.year)+'{:0>2d}'.format(current_dateTime.month)+'{:0>2d}'.format(current_dateTime.day))
-    # 当ユーザーのファイル名のカウンターが存在しない場合、作る
-    if(clientNameNum == 0):
+        # ファイル名が既にデータベース存在している資料を検索（その数だけ）
+        DuplicateFile = sqlCursor.execute(f"""select count(*) from file f
+                    where f.FILE_NAME ='{file.filename}' and
+                            f.SAVE_NAME LIKE '%{clientName}';
+                    """)
+        for item in DuplicateFile:
+            DuplicateFileNum = item[0]
+        if(DuplicateFileNum == 1):
+            return {'code': '400'}
+
+        # クライアントのファイル名のカウンター用のテーブルを作成
+        sqlCursor.execute("CREATE TABLE IF NOT EXISTS client(CLIENT_NAME varchar(3) primary key,FILE_NAME_COUNTER varchar(14))")
+        # 当ユーザーのファイル名のカウンターを検索（その数だけ）
+        clientNameNumOrigin = sqlCursor.execute(f"""select count(*) from client
+                    where client.CLIENT_NAME ='{clientName}';
+                    """)
+        for item in clientNameNumOrigin:
+            clientNameNum = item[0]
+        # 今の時間を取得
+        current_dateTime = datetime.now()
+        current_dateTime_fix = str('{:0>4d}'.format(current_dateTime.year)+'{:0>2d}'.format(current_dateTime.month)+'{:0>2d}'.format(current_dateTime.day))
+        # 当ユーザーのファイル名のカウンターが存在しない場合、作る
+        if(clientNameNum == 0):
+            sqlCursor.execute(f"""
+                INSERT INTO client VALUES
+                    ('{clientName}', '{current_dateTime_fix}000000');
+            """)
+            sqlConnect.commit()
+        # 当ユーザーのファイル名のカウンターを検索
+        clientSearchResult = sqlCursor.execute(f"SELECT * FROM client WHERE CLIENT_NAME = '{clientName}'")
+        for  item  in  clientSearchResult.fetchall():
+            clientNum = item[1]
+        
+        # clientNumが今日の場合、カウンターをプラス1とする
+        if(clientNum[:-6] == current_dateTime_fix):
+            clientNumTemp = int(clientNum[8:])
+            clientNumTemp += 1
+            clientNumTempStr = str('{:0>6d}'.format(clientNumTemp))
+            clientNumNew = clientNum[:-6]+clientNumTempStr
+        else:
+            # clientNumが今日ではない場合、カウンターを1に戻す
+            clientNumNew = current_dateTime_fix+"000001"
+        # 更新したclientNumをデータベースに保存
         sqlCursor.execute(f"""
-            INSERT INTO client VALUES
-                ('{clientName}', '{current_dateTime_fix}000000');
+                UPDATE client
+                SET FILE_NAME_COUNTER = '{clientNumNew}'
+                    WHERE CLIENT_NAME = '{clientName}'
         """)
         sqlConnect.commit()
-    # 当ユーザーのファイル名のカウンターを検索
-    clientSearchResult = sqlCursor.execute(f"SELECT * FROM client WHERE CLIENT_NAME = '{clientName}'")
-    for  item  in  clientSearchResult.fetchall():
-        clientNum = item[1]
-    
-    # clientNumが今日の場合、カウンターをプラス1とする
-    if(clientNum[:-6] == current_dateTime_fix):
-        clientNumTemp = int(clientNum[8:])
-        clientNumTemp += 1
-        clientNumTempStr = str('{:0>6d}'.format(clientNumTemp))
-        clientNumNew = clientNum[:-6]+clientNumTempStr
-    else:
-        # clientNumが今日ではない場合、カウンターを1に戻す
-        clientNumNew = current_dateTime_fix+"000001"
-    # 更新したclientNumをデータベースに保存
-    sqlCursor.execute(f"""
-            UPDATE client
-            SET FILE_NAME_COUNTER = '{clientNumNew}'
-                WHERE CLIENT_NAME = '{clientName}'
-    """)
-    sqlConnect.commit()
 
-    # 受け入れたファイルをbytesとして保存、ファイル名も保存
-    fileBytes = file.file.read()
-    fileName = file.filename
-    # 指定されたパスで当ファイルをアーカイブ
-    filePathSearchResult = sqlCursor.execute("SELECT * FROM filePath where FILE_PATH_NO = 1")
-    for  item  in  filePathSearchResult.fetchall():
-        pathSearch = item[1]
-    fout = open(pathSearch+"/"+clientNumNew+clientName+"."+fileName.split(".")[-1], 'wb')
-    fout.write(fileBytes)
-    fout.close()
+        # 受け入れたファイルをbytesとして保存、ファイル名も保存
+        fileBytes = file.file.read()
+        fileName = file.filename
+        # 指定されたパスで当ファイルをアーカイブ
+        filePathSearchResult = sqlCursor.execute("SELECT * FROM filePath where FILE_PATH_NO = 1")
+        for  item  in  filePathSearchResult.fetchall():
+            pathSearch = item[1]
+        fout = open(pathSearch+"/"+clientNumNew+clientName+"."+fileName.split(".")[-1], 'wb')
+        fout.write(fileBytes)
+        fout.close()
 
-    # データベースに必要な資料を用意
-    path = Path(pathSearch+"/"+clientNumNew+clientName+"."+fileName.split(".")[-1])
-    fileSize = path.stat().st_size
-    fileUpdateTimeOrigin = time.strftime("%Y-%m-%d",time.localtime(path.stat().st_mtime))
-    fileUpdateTime = fileUpdateTimeOrigin.split("-")
-    fileUpdateYear = fileUpdateTime[0]
-    fileUpdateMonth = fileUpdateTime[1]
-    fileUpdateDay = fileUpdateTime[2]
-    fileType = fileName.split(".")[-1]
+        # データベースに必要な資料を用意
+        path = Path(pathSearch+"/"+clientNumNew+clientName+"."+fileName.split(".")[-1])
+        fileSize = path.stat().st_size
+        fileUpdateTimeOrigin = time.strftime("%Y-%m-%d",time.localtime(path.stat().st_mtime))
+        fileUpdateTime = fileUpdateTimeOrigin.split("-")
+        fileUpdateYear = fileUpdateTime[0]
+        fileUpdateMonth = fileUpdateTime[1]
+        fileUpdateDay = fileUpdateTime[2]
+        fileType = fileName.split(".")[-1]
 
-    # テーブルを作る（もしなければ）
-    sqlCursor.execute("CREATE TABLE IF NOT EXISTS file(FILE_NO integer primary key AUTOINCREMENT,FILE_NAME varchar(270),FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
-    
-    # 資料をテーブルに追加
-    sqlCursor.execute(f"""
-        INSERT INTO file VALUES
-            (NULL,'{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', '{pathSearch}\{clientNumNew}{clientName}.{fileType}', '{clientNumNew}{clientName}', 0);
-    """)
-    sqlConnect.commit()
+        # テーブルを作る（もしなければ）
+        sqlCursor.execute("CREATE TABLE IF NOT EXISTS file(FILE_NO integer primary key AUTOINCREMENT,FILE_NAME varchar(270),FILE_SIZE integer,UPDATE_YEAR varchar(4),UPDATE_MONTH varchar(2),UPDATE_DAY varchar(2),FILE_FORMAT varchar(10),FILE_PATH varchar(270),SAVE_NAME varchar(17),DEL_FLG INTEGER DEFAULT 0)")
+        
+        # 資料をテーブルに追加
+        sqlCursor.execute(f"""
+            INSERT INTO file VALUES
+                (NULL,'{fileName}', {fileSize}, '{fileUpdateYear}', '{fileUpdateMonth}', '{fileUpdateDay}', '{fileType}', '{pathSearch}\{clientNumNew}{clientName}.{fileType}', '{clientNumNew}{clientName}', 0);
+        """)
+        sqlConnect.commit()
 
     # 成功メッセージを返す
     return {'code': '200'}

@@ -39,22 +39,26 @@ export default {
             // ダウンロードに必要なデータ
             paramFilePath: new FormData(),
 
+            itemsSelected: [],
+
+            trashCanItemsSelected: [],
+
         }
     },
     methods: {
         // ファイルのアプロード
         updateSend(){
             this.param.append('clientName','A01');
-            // 未選択の場合の対処
-            if(this.param.get('file') === null){
-                alert("ファイルを選択してください")
-                return;
-            }
-            // ファイルが100MBを超える場合の対処
-            if(this.param.get('file').size >= 100000000){ //100MB
-                alert("100MB以内のファイルを選択してください")
-                return;
-            }
+            // // 未選択の場合の対処
+            // if(this.param.get('file') === null){
+            //     alert("ファイルを選択してください")
+            //     return;
+            // }
+            // // ファイルが100MBを超える場合の対処
+            // if(this.param.get('file').size >= 100000000){ //100MB
+            //     alert("100MB以内のファイルを選択してください")
+            //     return;
+            // }
             // ファイルのアプロード
             axios.post('http://localhost:8000/api/upload',this.param,this.config)
             .then(response=>{
@@ -72,9 +76,23 @@ export default {
         },
         // 選択したファイルを更新（paramに入れる）
         update(e){
-            let file = e.target.files[0];
+            // let file = e.target.files[0];
+            // let files = e.target.files;
+            // let files = []
+            // console.log(typeof files)
+            // console.log(files.length)
             this.param = new FormData();
-            this.param.append('file',file);
+            for(let i = 0; i < e.target.files.length; i++){
+                // console.log("file"+i)
+                // files.push(e.target.files[i])
+                this.param.append("files",e.target.files[i]);
+            }
+            // console.log(typeof files)
+            // files.forEach(item => {
+            //     console.log("item!")
+            // });
+            // this.param.append('files',files);
+            // this.param.append('files',files);
         },
         // ファイルをダウンロード
         download(saveName, name){
@@ -235,13 +253,17 @@ export default {
         <p>今のファイルパス : {{ filePath }}</p>
         <hr/>
         <br/>
-        <h1>アプロード機能</h1>
-        <button type="submit" @click="updateSend">アプロード</button>
-        <input name="file" type="file" @change="update" />
+        <h1>アップロード機能</h1>
+        <button type="submit" @click="updateSend">アップロード</button>
+        <input name="file" type="file" @change="update" multiple/>
         <hr/>
         <br/>
         <h1>ダウンロード機能</h1>
-        <EasyDataTable :headers="headers" :items="items">
+        <button type="button">一括ダウンロード</button>
+        <button type="button">一括削除</button>
+        <EasyDataTable v-model:items-selected="itemsSelected" 
+                       :headers="headers" 
+                       :items="items">
             <template #item-do="{ saveName,name,fileNo }">
                 <button @click="download(saveName, name)">ダウンロード</button>
                 <br/>
@@ -251,10 +273,15 @@ export default {
                 <p class="pathShow">{{ path }}</p>
             </template>
         </EasyDataTable>
+        <p>{{ itemsSelected }}</p>
         <hr/>
         <br/>
         <h1>ゴミ箱</h1>
-        <EasyDataTable :headers="headers" :items="itemsTrashCan">
+        <button type="button">一括データ復旧</button>
+        <button type="button">一括永久削除</button>
+        <EasyDataTable v-model:items-selected="trashCanItemsSelected" 
+                       :headers="headers" 
+                       :items="itemsTrashCan">
             <template #item-do="{ fileNo }">
                 <button @click="cancelDeleteFile(fileNo)">データ復旧</button>
                 <br/>
@@ -264,6 +291,7 @@ export default {
                 <p class="pathShow">{{ path }}</p>
             </template>
         </EasyDataTable>
+        <p>{{ trashCanItemsSelected }}</p>
 
     </div>
 </template>
