@@ -14,6 +14,9 @@ export default {
             },
             // ダウンロードに必要なデータ
             paramDownload: new FormData(),
+
+            paramMultipleDownload: new FormData(),
+
             // ダウンロードしたファイルのパス
             pathLocal: "",
             // テーブルのタイトル
@@ -76,23 +79,10 @@ export default {
         },
         // 選択したファイルを更新（paramに入れる）
         update(e){
-            // let file = e.target.files[0];
-            // let files = e.target.files;
-            // let files = []
-            // console.log(typeof files)
-            // console.log(files.length)
             this.param = new FormData();
             for(let i = 0; i < e.target.files.length; i++){
-                // console.log("file"+i)
-                // files.push(e.target.files[i])
-                this.param.append("files",e.target.files[i]);
+               this.param.append("files",e.target.files[i]);
             }
-            // console.log(typeof files)
-            // files.forEach(item => {
-            //     console.log("item!")
-            // });
-            // this.param.append('files',files);
-            // this.param.append('files',files);
         },
         // ファイルをダウンロード
         download(saveName, name){
@@ -125,6 +115,38 @@ export default {
                     })
 
         },
+        // 複数ファイルをダウンロード
+        multipleDownload(){
+            // ダウンロードに必要なデータを用意
+            this.paramMultipleDownload = new FormData();
+            this.itemsSelected.forEach(item => {   
+                this.paramMultipleDownload.append('userNameList',item.saveName.substring(14));
+                this.paramMultipleDownload.append('nameList',item.name);
+            });
+            
+            axios.post('http://localhost:8000/api/multipleDownload',this.paramMultipleDownload,
+                {
+                    responseType: 'blob', // apiからダウンロードしたファイルをBlobとして受け入れる
+                }
+                )
+                    .then(response=>{
+                        //　ファイルをURLとして生成
+                        const url = window.URL.createObjectURL(new Blob([response.data],
+                            { type: 'application/octet-stream' }));//　octet-streamはファイル形式を指定しない場合に使う
+                        // ダウンロード用のリンクを生成
+                        const link = document.createElement('a');
+                        // リンク先は当ファイルと設定
+                        link.href = url;
+                        // 'download'は当リンクの内容をダウンロード
+                        link.setAttribute('download', 'download.zip');
+                        // 当リンクを画面に追加
+                        document.body.appendChild(link);
+                        // 当リンクをクリックし、ダウンロードを行う
+                        link.click();
+                    })
+
+        },
+
         // ファイルサイズの単位を変換する
         fileSizeUnit(size){
             if(size <= 1000)
@@ -205,7 +227,7 @@ export default {
                     });
                 })
         },
-
+        // ファイルパスを探す
         searchFilePath(){
             // 最初にデータベースにある資料を検索
             axios.post('http://localhost:8000/api/searchFilePath')
@@ -213,7 +235,7 @@ export default {
                     this.filePath = response.data.path
                 })
         },
-
+        // 保存フォルダーを更新
         filePathUpdate(){
             // パスの入力かをチェック
             if(this.filePathNew.length === 0){
@@ -259,12 +281,12 @@ export default {
         <hr/>
         <br/>
         <h1>ダウンロード機能</h1>
-        <button type="button">一括ダウンロード</button>
+        <button type="button" @click="multipleDownload()">一括ダウンロード</button>
         <button type="button">一括削除</button>
         <EasyDataTable v-model:items-selected="itemsSelected" 
                        :headers="headers" 
                        :items="items">
-            <template #item-do="{ saveName,name,fileNo }">
+            <template #item-do="{ saveName, name, fileNo }">
                 <button @click="download(saveName, name)">ダウンロード</button>
                 <br/>
                 <button @click="deleteFile(fileNo)">削除</button>
