@@ -130,7 +130,7 @@ export default {
                 }
                 )
                     .then(response=>{
-                        //　ファイルをURLとして生成
+                        // ファイルをURLとして生成
                         const url = window.URL.createObjectURL(new Blob([response.data],
                             { type: 'application/octet-stream' }));//　octet-streamはファイル形式を指定しない場合に使う
                         // ダウンロード用のリンクを生成
@@ -282,7 +282,7 @@ export default {
         <br/>
         <h1>ダウンロード機能</h1>
         <button type="button" @click="multipleDownload()">一括ダウンロード</button>
-        <button type="button">一括削除</button>
+        <!-- <button type="button">一括削除</button> -->
         <EasyDataTable v-model:items-selected="itemsSelected" 
                        :headers="headers" 
                        :items="items">
@@ -295,12 +295,12 @@ export default {
                 <p class="pathShow">{{ path }}</p>
             </template>
         </EasyDataTable>
-        <p>{{ itemsSelected }}</p>
+        <!-- <p>{{ itemsSelected }}</p> -->
         <hr/>
         <br/>
         <h1>ゴミ箱</h1>
-        <button type="button">一括データ復旧</button>
-        <button type="button">一括永久削除</button>
+        <!-- <button type="button">一括データ復旧</button>
+        <button type="button">一括永久削除</button> -->
         <EasyDataTable v-model:items-selected="trashCanItemsSelected" 
                        :headers="headers" 
                        :items="itemsTrashCan">
@@ -313,7 +313,7 @@ export default {
                 <p class="pathShow">{{ path }}</p>
             </template>
         </EasyDataTable>
-        <p>{{ trashCanItemsSelected }}</p>
+        <!-- <p>{{ trashCanItemsSelected }}</p> -->
 
     </div>
 </template>
