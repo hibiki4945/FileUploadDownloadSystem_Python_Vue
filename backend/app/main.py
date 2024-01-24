@@ -72,6 +72,7 @@ def serchAllTrashCan():
 
 @app.post("/api/searchFilePath")
 def searchFilePath():
+    print("searchFilePath!")
     # データベースと接続
     sqlConnect= sqlite3.connect("file_manage.db")
     sqlCursor= sqlConnect.cursor()
@@ -94,6 +95,8 @@ def searchFilePath():
 
 @app.post("/api/updateFilePath")
 def updateFilePath(path: str = Form(...)):
+    print("updateFilePath!")
+    print("path: "+path)
     # データベースと接続
     sqlConnect= sqlite3.connect("file_manage.db")
     sqlCursor= sqlConnect.cursor()

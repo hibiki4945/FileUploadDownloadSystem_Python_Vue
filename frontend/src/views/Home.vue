@@ -63,7 +63,7 @@ export default {
             //     return;
             // }
             // ファイルのアプロード
-            axios.post('http://localhost:8000/api/upload',this.param,this.config)
+            axios.post('/api/upload',this.param,this.config)
             .then(response=>{
                 if(response.data.code === "200"){
                     // メッセージを画面に表示
@@ -90,7 +90,7 @@ export default {
             this.paramDownload.append('userName',saveName.substring(14));
             this.paramDownload.append('name',name);
             // ファイルをダウンロード
-            axios.post('http://localhost:8000/api/download',this.paramDownload,
+            axios.post('/api/download',this.paramDownload,
                 {
                     responseType: 'blob', // apiからダウンロードしたファイルをBlobとして受け入れる
                 }
@@ -124,7 +124,7 @@ export default {
                 this.paramMultipleDownload.append('nameList',item.name);
             });
             
-            axios.post('http://localhost:8000/api/multipleDownload',this.paramMultipleDownload,
+            axios.post('/api/multipleDownload',this.paramMultipleDownload,
                 {
                     responseType: 'blob', // apiからダウンロードしたファイルをBlobとして受け入れる
                 }
@@ -163,7 +163,7 @@ export default {
             let pathStr = path.toString()
             
             // ファイルをダウンロード
-            axios.post('http://localhost:8000/api/delete',
+            axios.post('/api/delete',
                 {pathStr: pathStr},// ファイルパスを送る
                 )
                 .then(response=>{
@@ -176,7 +176,7 @@ export default {
             let pathStr = path.toString()
             
             // ファイルをダウンロード
-            axios.post('http://localhost:8000/api/cancelDelete',
+            axios.post('/api/cancelDelete',
                 {pathStr: pathStr},// ファイルパスを送る
                 )
                 .then(response=>{
@@ -189,7 +189,7 @@ export default {
             let pathStr = path.toString()
             
             // ファイルをダウンロード
-            axios.post('http://localhost:8000/api/deletePermanently',
+            axios.post('/api/deletePermanently',
                 {pathStr: pathStr},// ファイルパスを送る
                 )
                 .then(response=>{
@@ -200,7 +200,7 @@ export default {
         // データベースにある資料を検索
         searchAll(){
             // 最初にデータベースにある資料を検索
-            axios.post('http://localhost:8000/api/serchAll')
+            axios.post('/api/serchAll')
                 .then(response=>{
                     // 検索結果を更新
                     this.items = []
@@ -215,7 +215,7 @@ export default {
         // データベースにある資料を検索（削除したデータ）
         searchAllTrashCan(){
             // 最初にデータベースにある資料を検索
-            axios.post('http://localhost:8000/api/serchAllTrashCan')
+            axios.post('/api/serchAllTrashCan')
                 .then(response=>{
                     // 検索結果を更新
                     this.itemsTrashCan = []
@@ -230,7 +230,8 @@ export default {
         // ファイルパスを探す
         searchFilePath(){
             // 最初にデータベースにある資料を検索
-            axios.post('http://localhost:8000/api/searchFilePath')
+            // axios.post('/api/searchFilePath')
+            axios.post('/api/searchFilePath')
                 .then(response=>{
                     this.filePath = response.data.path
                 })
@@ -244,14 +245,17 @@ export default {
             }
 
             this.paramFilePath.append('path',this.filePathNew);
-            axios.post('http://localhost:8000/api/updateFilePath',this.paramFilePath)
+            axios.post('/api/updateFilePath',this.paramFilePath)
                 .then(response=>{
+                    console.log("filePathUpdate!")
                     if(response.data.code === "200"){
+                        console.log("200")
                         this.filePathNew = ''
                         this.searchFilePath();
                         alert("パスの変更は成功しました")
                     }
                     else{
+                        console.log("400")
                         alert("パスは存在しません")
                     }
                 })
