@@ -28,27 +28,6 @@ app.add_middleware(
 class Item(BaseModel):
     pathStr:str
 
-
-# データベースにある資料を検索
-@app.get("/users")
-async def getUsers(_sort: str, _order: str, name_like: str):
-    print("getUsers!")
-    print("_sort: "+_sort)
-    print("_order: "+_order)
-    print("name_like: "+name_like)
-
-    if(name_like == "2"):
-            return [{"id": "2", "name": "Jack2", "age": 20}]
-        
-    if(_sort == "id"):
-        if(_order == "asc"):
-            # 検索結果を返す
-            return [{"id": "1", "name": "Jack", "age": 20},{"id": "2", "name": "Jack2", "age": 20}]
-        else:
-            return [{"id": "2", "name": "Jack2", "age": 20},{"id": "1", "name": "Jack", "age": 20}]
-    else:
-            return [{"id": "1", "name": "Jack", "age": 20},{"id": "2", "name": "Jack2", "age": 20}]
-        
 # データベースにある資料を検索
 @app.post("/searchAll")
 def searchAll():
