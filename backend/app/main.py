@@ -6,20 +6,51 @@ from starlette.responses import FileResponse
 from pydantic import BaseModel
 from io import BytesIO
 from zipfile import ZipFile
+from datetime import datetime
+from starlette.middleware.cors import CORSMiddleware # 追加
 
 import time
 import sqlite3
 
-from datetime import datetime
 
 app = FastAPI()
+
+# CORSを回避するために追加（今回の肝）
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,   # 追記により追加
+    allow_methods=["*"],      # 追記により追加
+    allow_headers=["*"]       # 追記により追加
+)
 
 # エラー422の対策
 class Item(BaseModel):
     pathStr:str
 
+
 # データベースにある資料を検索
-@app.post("/api/serchAll")
+@app.get("/users")
+async def getUsers(_sort: str, _order: str, name_like: str):
+    print("getUsers!")
+    print("_sort: "+_sort)
+    print("_order: "+_order)
+    print("name_like: "+name_like)
+
+    if(name_like == "2"):
+            return [{"id": "2", "name": "Jack2", "age": 20}]
+        
+    if(_sort == "id"):
+        if(_order == "asc"):
+            # 検索結果を返す
+            return [{"id": "1", "name": "Jack", "age": 20},{"id": "2", "name": "Jack2", "age": 20}]
+        else:
+            return [{"id": "2", "name": "Jack2", "age": 20},{"id": "1", "name": "Jack", "age": 20}]
+    else:
+            return [{"id": "1", "name": "Jack", "age": 20},{"id": "2", "name": "Jack2", "age": 20}]
+        
+# データベースにある資料を検索
+@app.post("/searchAll")
 def searchAll():
     # データベースと接続
     sqlConnect = sqlite3.connect("file_manage.db")
@@ -45,8 +76,8 @@ def searchAll():
     # 検索結果を返す
     return {'code': '200', 'resultReturn': resultReturn}
 
-@app.post("/api/serchAllTrashCan")
-def serchAllTrashCan():
+@app.post("/searchAllTrashCan")
+def searchAllTrashCan():
     # データベースと接続
     sqlConnect= sqlite3.connect("file_manage.db")
     sqlCursor= sqlConnect.cursor()
@@ -70,7 +101,7 @@ def serchAllTrashCan():
     # 検索結果を返す
     return {'code': '200', 'resultReturn': resultReturn}
 
-@app.post("/api/searchFilePath")
+@app.post("/searchFilePath")
 def searchFilePath():
     print("searchFilePath!")
     # データベースと接続
@@ -93,7 +124,7 @@ def searchFilePath():
     # 検索結果を返す
     return {'code': '200', 'path': resultReturn}
 
-@app.post("/api/updateFilePath")
+@app.post("/updateFilePath")
 def updateFilePath(path: str = Form(...)):
     print("updateFilePath!")
     print("path: "+path)
@@ -117,7 +148,7 @@ def updateFilePath(path: str = Form(...)):
     return {'code': '200'}
 
 # ファイルをアプロード
-@app.post("/api/upload")
+@app.post("/upload")
 # def upload(files: List[UploadFile],clientName: str = Form(...)):
 def upload(files: List[UploadFile] = File(...),clientName: str = Form(...)):
 # def upload(files: UploadFile,clientName: str = Form(...)):
@@ -217,7 +248,7 @@ def upload(files: List[UploadFile] = File(...),clientName: str = Form(...)):
     return {'code': '200'}
 
 # ファイルをダウンロード
-@app.post("/api/download")
+@app.post("/download")
 def download(userName: str = Form(...), name: str = Form(...)):
 
     # データベースと接続
@@ -236,7 +267,7 @@ def download(userName: str = Form(...), name: str = Form(...)):
     return FileResponse(filePath, filename=fileName, media_type='application/octet-stream')
 
 # ファイルをダウンロード
-@app.post("/api/multipleDownload")
+@app.post("/multipleDownload")
 def multipleDownload(userNameList: List[str] = Form(...), nameList: List[str] = Form(...)):
 
     # ファイルパスとファイル名を保存用
@@ -272,14 +303,18 @@ def multipleDownload(userNameList: List[str] = Form(...), nameList: List[str] = 
     return StreamingResponse(zip_buffer, media_type="application/zip", headers={"Content-Disposition": "attachment; filename=download.zip"})
 
 # ファイルをダウンロード
-@app.post("/api/delete")
+@app.post("/delete")
 def delete(pathStr:Item):
+    print("delete!")
+    print(pathStr)
     
     fileNo = str(pathStr).split("'")[-2]
+    print("fileNo: "+fileNo)
 
     # データベースと接続
     sqlConnect= sqlite3.connect("file_manage.db")
     sqlCursor= sqlConnect.cursor()
+    print("01")
     # 削除（DEL_FLGを1とする）
     sqlCursor.execute(f"""
              UPDATE file
@@ -287,12 +322,13 @@ def delete(pathStr:Item):
                     WHERE FILE_NO = {fileNo}
         """)
     sqlConnect.commit()
+    print("02")
 
     # 成功メッセージを返す
     return {'code': '200'}
 
 # ファイルをダウンロード
-@app.post("/api/cancelDelete")
+@app.post("/cancelDelete")
 def cancelDelete(pathStr:Item):
     
     fileNo = str(pathStr).split("'")[-2]
@@ -311,7 +347,7 @@ def cancelDelete(pathStr:Item):
     # 成功メッセージを返す
     return {'code': '200'}
 
-@app.post("/api/deletePermanently")
+@app.post("/deletePermanently")
 def deletePermanently(pathStr:Item):
 
     fileNo = str(pathStr).split("'")[-2]
